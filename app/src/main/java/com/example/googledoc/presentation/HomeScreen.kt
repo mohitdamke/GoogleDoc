@@ -37,8 +37,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,10 +49,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.googledoc.common.formatTimestamp
+import com.example.googledoc.common.FormatTimestamp
 import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
 import com.example.googledoc.viewmodel.DocumentViewModel
@@ -129,7 +126,7 @@ fun HomeScreen(
         }, floatingActionButton = {
             FloatingActionButton(onClick = {
                 navController.navigate(
-                    Routes.Edit.route.replace(
+                    Routes.View.route.replace(
                         oldValue = "{documentId}", newValue = "new"
                     )
                 )
@@ -152,7 +149,7 @@ fun HomeScreen(
                         items(documents) { document ->
                             DocumentItem(document = document, onClick = {
                                 navController.navigate(
-                                    Routes.Edit.route.replace(
+                                    Routes.View.route.replace(
                                         "{documentId}", document.documentId
                                     )
                                 )
@@ -194,7 +191,7 @@ fun DocumentItem(
         Column {
             Text(text = document.title, style = MaterialTheme.typography.labelLarge)
             Text(
-                text = "Last Edited: ${formatTimestamp(document.timestamp)}",
+                text = "Last Edited: ${FormatTimestamp(document.timestamp)}",
                 style = MaterialTheme.typography.labelMedium
             )
         }
@@ -217,7 +214,7 @@ fun ShareDocumentDialog(
     viewModel: DocumentViewModel
 ) {
     var email by remember { mutableStateOf("") }
-    var permission by remember { mutableStateOf("view") } // or "edit"
+    var permission by remember { mutableStateOf("view") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -247,7 +244,7 @@ fun ShareDocumentDialog(
         },
         confirmButton = {
             Button(onClick = {
-                viewModel.shareDocument(documentId, email, permission)
+                viewModel.shareDocument(documentId = documentId, email = email, permission = permission)
                 onDismiss()
             }) {
                 Text("Share")
