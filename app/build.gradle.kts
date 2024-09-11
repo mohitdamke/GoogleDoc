@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.androidx.runtime.livedata)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -101,5 +103,16 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.5.0")
 
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.27.0")
+
+    // Rich Text Editor
+    implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-rc06")
+
+    // Pdf File
+    implementation("com.itextpdf:itext7-core:7.2.6")
+
+    // Word File
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
+
 
 }
