@@ -50,11 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.googledoc.common.FormatTimestamp
 import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
 import com.example.googledoc.viewmodel.DocumentViewModel
+import com.example.googledoc.viewmodel.LoginViewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
@@ -71,6 +73,7 @@ fun HomeScreen(
     val currentUser = Firebase.auth.currentUser?.uid
     var documentToShare by remember { mutableStateOf<String?>(null) }
     var showShareDialog by remember { mutableStateOf(false) }
+    val loginViewModel: LoginViewModel = viewModel()
 
     // Fetch the user's documents when this screen loads
     LaunchedEffect(Unit) {
@@ -91,6 +94,7 @@ fun HomeScreen(
                     onClick = { /*TODO*/ }
                 )
                 TextButton(onClick = {
+                    loginViewModel.signOut()
                     navController.navigate(Routes.Login.route) {
                         popUpTo(0) // Clear the backstack
                     }
@@ -244,7 +248,11 @@ fun ShareDocumentDialog(
         },
         confirmButton = {
             Button(onClick = {
-                viewModel.shareDocument(documentId = documentId, email = email, permission = permission)
+                viewModel.shareDocument(
+                    documentId = documentId,
+                    email = email,
+                    permission = permission
+                )
                 onDismiss()
             }) {
                 Text("Share")

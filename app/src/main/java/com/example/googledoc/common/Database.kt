@@ -5,4 +5,6 @@ object Database {
     val OwnerId = "ownerId"
     val Content = "content"
     val Title = "title"
+    val Email = "email"
+    val Users = "users"
 }

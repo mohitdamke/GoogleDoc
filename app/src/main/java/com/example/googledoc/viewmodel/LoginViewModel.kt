@@ -1,7 +1,9 @@
 package com.example.googledoc.viewmodel
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.googledoc.R
@@ -16,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class LoginViewModel : ViewModel() {
 
+    private lateinit var googleSignInClient: GoogleSignInClient
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     // Google Sign-In client configuration
@@ -25,7 +28,13 @@ class LoginViewModel : ViewModel() {
             .requestEmail()
             .build()
 
-        return GoogleSignIn.getClient(activity, gso)
+
+        googleSignInClient = GoogleSignIn.getClient(activity, gso)
+
+        // Force account chooser even if the user has already signed in
+        googleSignInClient.signOut()
+
+        return googleSignInClient
     }
 
     // Firebase Authentication with Google
@@ -51,8 +60,13 @@ class LoginViewModel : ViewModel() {
         return auth.currentUser != null
     }
 
+    fun showErrorMessage(context: Context, message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
     // Sign out
     fun signOut() {
+        googleSignInClient.signOut()
         auth.signOut()
     }
 }

@@ -4,22 +4,31 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -63,7 +72,7 @@ fun DocumentViewScreen(
     val documentViewModel: DocumentViewModel = hiltViewModel()
     val document by documentViewModel.currentDocument.observeAsState()
     val isLoading by documentViewModel.isLoading.observeAsState(false)
-
+    val errorMessage by documentViewModel.error.observeAsState()
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -72,6 +81,12 @@ fun DocumentViewScreen(
     LaunchedEffect(documentId) {
         documentViewModel.fetchDocument(documentId)
         println("Document fetched: ${documentViewModel.currentDocument.value}")
+    }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
     }
 
     Scaffold(
@@ -181,6 +196,14 @@ fun DocumentViewScreen(
                         onDownloadPdf = { document ->
                             SaveAsPdf(context, document)
                         },
+                        onShareDocument = { email, permission ->
+                            documentViewModel.shareDocument(
+                                documentId = documentId,
+                                email = email,
+                                permission = permission
+
+                            )
+                        },
                         document = document!!
                     )
                 } else {
@@ -199,14 +222,72 @@ fun DocumentBottomSheetContent(
     onLinkShare: () -> Unit,
     onEdit: () -> Unit,
     onDownloadPdf: (Document) -> Unit,
+    onShareDocument: (String, String) -> Unit,  // email and permission
     document: Document
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    var emailToShare by remember { mutableStateOf("") }
+    var permission by remember { mutableStateOf("view") } // Default to view permission
+
     Column(modifier = Modifier.padding(16.dp)) {
         Text(text = "Options", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(8.dp))
 
-        Row {
+        // Sharing Section
+        Text(text = "Share Document")
+        Spacer(modifier = Modifier.height(8.dp))
 
+        // Email input field
+        OutlinedTextField(
+            value = emailToShare,
+            onValueChange = { emailToShare = it },
+            label = { Text("Enter email to share with") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Permission selector (view or edit)
+        Text(text = "Permission:")
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentSize(Alignment.TopEnd)
+        ) {
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More"
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("View") },
+                    onClick = { permission = "view" }
+                )
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    onClick = { permission = "edit" }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(onClick = {
+            // Call the share document logic
+            onShareDocument(emailToShare, permission)
+            onDismiss()
+        }) {
+            Text("Share Document")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row {
             Button(onClick = {
                 onFileShare()
                 onDismiss()
@@ -221,13 +302,16 @@ fun DocumentBottomSheetContent(
                 Text("Link Share")
             }
         }
+
         Button(onClick = {
             onEdit()
             onDismiss()
         }) {
             Text("Edit")
         }
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Button(onClick = {
             onDownloadPdf(document)
             onDismiss()
@@ -236,5 +320,6 @@ fun DocumentBottomSheetContent(
         }
     }
 }
+
 
 

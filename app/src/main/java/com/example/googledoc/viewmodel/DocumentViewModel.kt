@@ -134,23 +134,50 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
-    fun getUserIdByEmail(email: String): String? {
-        // Implement a way to fetch user ID by email from your system or Firestore
-        return null // Replace with actual implementation
+    private fun getUserIdByEmail(email: String): String? {
+        var userId: String? = null
+        db.collection(Database.Users)
+            .whereEqualTo(Database.Email, email)
+            .get()
+            .addOnSuccessListener { documents ->
+                for (document in documents) {
+                    userId = document.id  // Assuming userId is stored in Firestore document ID
+                }
+            }
+            .addOnFailureListener {
+                Log.e("Firestore", "Error fetching user ID by email", it)
+            }
+
+        return userId  // Return the user ID after the query
     }
 
 
     fun shareDocument(documentId: String, email: String, permission: String) {
-        val userId = getUserIdByEmail(email) ?: return
+        // Validate the permission value
+        if (permission != "view" && permission != "edit") {
+            _error.postValue("Invalid permission type")
+            return
+        }
+
+        // Fetch the user ID by email, assuming you have a way to get the user ID by their email
+        val userId = getUserIdByEmail(email)
+
+        if (userId == null) {
+            _error.postValue("User with this email does not exist")
+            return
+        }
 
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.postValue(true)
             try {
+                // Update the `sharedWith` field in Firestore with the email and permission
                 val updates = mapOf(
-                    "sharedWith.$email" to permission
+                    "sharedWith.$userId" to permission
                 )
                 docRef.document(documentId).update(updates).await()
-                // Optionally, notify the user or update the UI
+
+                // Optionally, refresh the current document to show updated shared permissions
+                fetchDocument(documentId)
             } catch (e: Exception) {
                 _error.postValue(e.message)
             } finally {
@@ -158,6 +185,7 @@ class DocumentViewModel @Inject constructor(
             }
         }
     }
+
 
 
 }

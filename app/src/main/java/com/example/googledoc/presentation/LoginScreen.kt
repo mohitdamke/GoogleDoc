@@ -31,7 +31,9 @@ fun LoginScreen(navController: NavController) {
     // Check if the user is already logged in
     if (loginViewModel.isUserLoggedIn()) {
         LaunchedEffect(Unit) {
-            navController.navigate(Routes.Home.route)
+            navController.navigate(Routes.Home.route){
+                popUpTo(0) // Clear backstack
+            }
         }
     }
 
@@ -49,10 +51,11 @@ fun LoginScreen(navController: NavController) {
                     }
                 } else {
                     // Handle login failure
+                    loginViewModel.showErrorMessage(activity, "Authentication failed. Please try again.")
                 }
             }
         } catch (e: ApiException) {
-            // Handle sign-in failure
+            loginViewModel.showErrorMessage(activity, "Google Sign-In failed: ${e.localizedMessage}")
         }
     }
 
