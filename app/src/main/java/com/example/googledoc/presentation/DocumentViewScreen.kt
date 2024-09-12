@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -67,6 +71,7 @@ fun DocumentViewScreen(
     // Fetch the document data when the screen loads
     LaunchedEffect(documentId) {
         documentViewModel.fetchDocument(documentId)
+        println("Document fetched: ${documentViewModel.currentDocument.value}")
     }
 
     Scaffold(
@@ -76,6 +81,16 @@ fun DocumentViewScreen(
             }) {
                 Icon(Icons.Default.Add, contentDescription = "Document")
             }
+        }, topBar = {
+            TopAppBar(title = {
+                Text(
+                    text = document?.title ?: "Loading",
+                    textAlign = TextAlign.Start,
+                    fontSize = 24.sp,
+                    minLines = 1,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            })
         }
     ) { paddingValues ->
         if (isLoading) {
@@ -88,9 +103,7 @@ fun DocumentViewScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .padding(16.dp)
                 ) {
-                    Text(text = it.title, style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(16.dp))
                     AndroidView(
                         factory = { context ->
@@ -110,7 +123,7 @@ fun DocumentViewScreen(
                 },
                 sheetState = sheetState
             ) {
-                document?.let { doc ->
+                if (document != null) {
                     DocumentBottomSheetContent(
                         onDismiss = {
                             showBottomSheet = false
@@ -168,8 +181,11 @@ fun DocumentViewScreen(
                         onDownloadPdf = { document ->
                             SaveAsPdf(context, document)
                         },
-                        document = doc
+                        document = document!!
                     )
+                } else {
+                    // Fallback content if document is null
+                    Text("No document available")
                 }
             }
         }

@@ -124,7 +124,8 @@ class DocumentViewModel @Inject constructor(
             _isLoading.postValue(true)
             try {
                 docRef.document(documentId).delete().await()
-                fetchDocument(documentId = documentId)  // Refresh document list after creating a new one
+                val updatedDocuments = repository.getDocuments(userId)
+                _documents.postValue(updatedDocuments)
             } catch (e: Exception) {
                 _error.postValue(e.message)
             } finally {

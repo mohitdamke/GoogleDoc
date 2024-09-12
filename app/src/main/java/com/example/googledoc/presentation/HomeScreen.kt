@@ -126,7 +126,7 @@ fun HomeScreen(
         }, floatingActionButton = {
             FloatingActionButton(onClick = {
                 navController.navigate(
-                    Routes.View.route.replace(
+                    Routes.Edit.route.replace(
                         oldValue = "{documentId}", newValue = "new"
                     )
                 )
