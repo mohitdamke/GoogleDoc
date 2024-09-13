@@ -1,8 +1,10 @@
 package com.example.googledoc.presentation
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -11,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,7 +28,9 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,10 +38,13 @@ import androidx.navigation.NavController
 import com.example.googledoc.common.FormatTimestamp
 import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
+import com.example.googledoc.size.FontDim
+import com.example.googledoc.size.TextDim
 import com.example.googledoc.viewmodel.DocumentViewModel
 
 @Composable
 fun SearchScreen(
+    modifier: Modifier = Modifier,
     navController: NavController
 ) {
     val documentViewModel: DocumentViewModel = hiltViewModel()
@@ -62,27 +70,48 @@ fun SearchScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { query -> searchQuery = query },
-                label = { Text("Search") },
+                placeholder = { Text("Search") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(100.dp), trailingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "search")
+                }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             if (searchQuery.isEmpty()) {
                 // Show placeholder or empty state
-                Text(
-                    text = "Start typing to search for documents",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier, textAlign = TextAlign.Center
-                )
+                Column(
+                    modifier = modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+
+                    Text(
+                        text = "Start typing to search for documents",
+                        fontSize = TextDim.bodyTextSize,
+                        fontFamily = FontDim.Bold,
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray
+                    )
+
+                }
             } else if (filteredDocuments.isEmpty()) {
-                // Show no results message
-                Text(
-                    text = "No documents found",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier, textAlign = TextAlign.Center
-                )
+                Column(
+                    modifier = modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+
+                    // Show no results message
+                    Text(
+                        text = "No documents found",
+                        fontSize = TextDim.bodyTextSize,
+                        fontFamily = FontDim.Bold,
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray
+                    )
+                }
             } else {
                 // Display filtered documents
                 // Display filtered documents

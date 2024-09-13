@@ -1,20 +1,12 @@
 package com.example.googledoc.domain.repository
 
-import android.content.Context
-import androidx.room.Room
 import com.example.googledoc.common.Database
 import com.example.googledoc.data.Document
-import com.example.googledoc.domain.DocumentDao
-import com.example.googledoc.domain.DocumentDatabase
 import com.google.firebase.firestore.FirebaseFirestore
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-class DocumentRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val documentDao: DocumentDao
-) {
+class DocumentRepository @Inject constructor() {
 
     private val db = FirebaseFirestore.getInstance()
 
