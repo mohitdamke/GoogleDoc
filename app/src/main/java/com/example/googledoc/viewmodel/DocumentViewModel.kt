@@ -1,12 +1,16 @@
 package com.example.googledoc.viewmodel
 
+import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.googledoc.common.Database
 import com.example.googledoc.data.Document
+import com.example.googledoc.data.DocumentEntity
+import com.example.googledoc.domain.DocumentDao
 import com.example.googledoc.domain.repository.DocumentRepository
 import com.google.android.gms.tasks.Tasks.await
 import com.google.firebase.auth.FirebaseAuth
@@ -19,7 +23,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DocumentViewModel @Inject constructor(
-    private val repository: DocumentRepository
+    private val repository: DocumentRepository,
+    private val documentDao: DocumentDao,
 ) : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
@@ -34,6 +39,11 @@ class DocumentViewModel @Inject constructor(
     private val _currentDocument = MutableLiveData<Document?>()
     val currentDocument: LiveData<Document?> get() = _currentDocument
 
+    // LiveData for managing the offline status of documents
+    private val _offlineStatusMap = MutableLiveData<Map<String, Boolean>>(emptyMap())
+    val offlineStatusMap: LiveData<Map<String, Boolean>> get() = _offlineStatusMap
+
+
     // Loading state for data fetch operations
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
@@ -46,6 +56,7 @@ class DocumentViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _documents.value = repository.getDocuments(userId) // Fetch documents from repository
+            updateOfflineStatusForDocuments()
         }
     }
 
@@ -79,8 +90,11 @@ class DocumentViewModel @Inject constructor(
             _isLoading.postValue(true)
             val documentId = docRef.document().id
             val newDocument = Document(
-                documentId = documentId, title = title, content = content, ownerId = userId ?: "",
-                sharedWith = mapOf(userId!! to "edit") // Default share with owner as "edit"
+                documentId = documentId,
+                title = title,
+                content = content,
+                ownerId = userId ?: return@launch,  // Handle null case by stopping execution,
+                sharedWith = mapOf(userId to "edit") // Default share with owner as "edit"
             )
 
             try {
@@ -134,25 +148,21 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
-    private fun getUserIdByEmail(email: String): String? {
-        var userId: String? = null
-        db.collection(Database.Users)
-            .whereEqualTo(Database.Email, email)
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    userId = document.id  // Assuming userId is stored in Firestore document ID
-                }
-            }
-            .addOnFailureListener {
-                Log.e("Firestore", "Error fetching user ID by email", it)
-            }
-
-        return userId  // Return the user ID after the query
+    private suspend fun getUserIdByEmail(email: String): String? {
+        return try {
+            val querySnapshot = db.collection(Database.Users)
+                .whereEqualTo(Database.Email, email)
+                .get()
+                .await()
+            querySnapshot.documents.firstOrNull()?.id
+        } catch (e: Exception) {
+            Log.e("Firestore", "Error fetching user ID by email", e)
+            null
+        }
     }
 
 
-    fun shareDocument(documentId: String, email: String, permission: String) {
+    suspend fun shareDocument(documentId: String, email: String, permission: String) {
         // Validate the permission value
         if (permission != "view" && permission != "edit") {
             _error.postValue("Invalid permission type")
@@ -186,6 +196,101 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
+    fun saveDocumentOffline(context: Context, document: Document) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val documentEntity = DocumentEntity(
+                    documentId = document.documentId,
+                    title = document.title,
+                    content = document.content,
+                    timestamp = document.timestamp
+                )
+                documentDao.saveDocument(documentEntity)
+                updateOfflineStatusForDocuments()
+                // Show a success Toast message on the main thread
+                viewModelScope.launch(Dispatchers.Main) {
+                    Toast.makeText(context, "Document saved offline", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                viewModelScope.launch(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Failed to save document offline: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
 
+    // Removing document from offline storage with toast notification
+    fun removeDocumentOffline(context: Context, document: Document) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val documentEntity = DocumentEntity(
+                    documentId = document.documentId,
+                    title = document.title,
+                    content = document.content,
+                    timestamp = document.timestamp
+                )
+                documentDao.deleteDocument(documentEntity)
+                updateOfflineStatusForDocuments()
+
+                // Show a success Toast message on the main thread
+                viewModelScope.launch(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Document removed from offline storage",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                viewModelScope.launch(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Failed to remove document: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    // Checking if a document is offline with toast notification
+    fun isDocumentOffline(context: Context, documentId: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val document = documentDao.getDocument(documentId)
+                val isOffline = document != null
+
+                // Show a toast based on the result
+                viewModelScope.launch(Dispatchers.Main) {
+                    val message = if (isOffline) {
+                        "Document is available offline"
+                    } else {
+                        "Document is not saved offline"
+                    }
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+                    onResult(isOffline)
+                }
+            } catch (e: Exception) {
+                viewModelScope.launch(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Error checking document offline status: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+    private suspend fun updateOfflineStatusForDocuments() {
+        val documentList = _documents.value ?: return
+        val statusMap = documentList.associate { doc ->
+            doc.documentId to (documentDao.getDocument(doc.documentId) != null)
+        }
+        _offlineStatusMap.postValue(statusMap)
+    }
 
 }

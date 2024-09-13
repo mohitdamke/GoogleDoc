@@ -115,5 +115,9 @@ dependencies {
     implementation("org.apache.poi:poi:5.2.3")
     implementation("org.apache.poi:poi-ooxml:5.2.3")
 
+    implementation("androidx.room:room-runtime:2.5.0")  // Ensure you have the latest Room dependency
+    kapt("androidx.room:room-compiler:2.5.0")  // Add the kapt annotation processor for Room
+    implementation("androidx.room:room-ktx:2.5.0")  // Op
+
 
 }

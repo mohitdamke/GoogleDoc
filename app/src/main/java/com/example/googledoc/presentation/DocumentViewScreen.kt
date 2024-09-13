@@ -56,6 +56,7 @@ import com.example.googledoc.common.SaveAsPdf
 import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
 import com.example.googledoc.viewmodel.DocumentViewModel
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -197,12 +198,13 @@ fun DocumentViewScreen(
                             SaveAsPdf(context, document)
                         },
                         onShareDocument = { email, permission ->
-                            documentViewModel.shareDocument(
-                                documentId = documentId,
-                                email = email,
-                                permission = permission
-
-                            )
+                            scope.launch {
+                                documentViewModel.shareDocument(
+                                    documentId = documentId,
+                                    email = email,
+                                    permission = permission
+                                )
+                            }
                         },
                         document = document!!
                     )
