@@ -5,8 +5,10 @@ import android.net.Uri
 import android.os.Environment
 import android.webkit.WebView
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -110,24 +112,24 @@ fun DocumentViewScreen(
         }
     ) { paddingValues ->
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
             document?.let {
                 Column(
-                    modifier = Modifier
+                    modifier = modifier
                         .fillMaxSize()
                         .padding(paddingValues)
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = modifier.height(16.dp))
                     AndroidView(
                         factory = { context ->
                             WebView(context).apply {
                                 loadData(it.content, "text/html", "UTF-8")
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = modifier.weight(1f)
                     )
                 }
             }
@@ -219,6 +221,7 @@ fun DocumentViewScreen(
 
 @Composable
 fun DocumentBottomSheetContent(
+    modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onFileShare: () -> Unit,
     onLinkShare: () -> Unit,
@@ -231,30 +234,38 @@ fun DocumentBottomSheetContent(
     var emailToShare by remember { mutableStateOf("") }
     var permission by remember { mutableStateOf("view") } // Default to view permission
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(text = "Options", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(8.dp))
+    Column(
+        modifier = modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+    ) {
+        Text(
+            text = "Options",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
 
         // Sharing Section
-        Text(text = "Share Document")
-        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Share Document",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
 
         // Email input field
         OutlinedTextField(
             value = emailToShare,
             onValueChange = { emailToShare = it },
-            label = { Text("Enter email to share with") }
+            label = { Text("Enter email to share with") },
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
 
         // Permission selector (view or edit)
-        Text(text = "Permission:")
-        Spacer(modifier = Modifier.width(8.dp))
-
+        Text(text = "Permission:", style = MaterialTheme.typography.bodyMedium)
+        Spacer(modifier = Modifier.height(4.dp))
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentSize(Alignment.TopEnd)
+            modifier = Modifier.fillMaxWidth()
         ) {
             IconButton(onClick = { expanded = !expanded }) {
                 Icon(
@@ -279,49 +290,74 @@ fun DocumentBottomSheetContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(onClick = {
-            // Call the share document logic
-            onShareDocument(emailToShare, permission)
-            onDismiss()
-        }) {
+        Button(
+            onClick = {
+                // Call the share document logic
+                onShareDocument(emailToShare, permission)
+                onDismiss()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Share Document")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row {
-            Button(onClick = {
-                onFileShare()
-                onDismiss()
-            }) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = {
+                    onFileShare()
+                    onDismiss()
+                },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
                 Text("File Share")
             }
 
-            Button(onClick = {
-                onLinkShare()
-                onDismiss()
-            }) {
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Button(
+                onClick = {
+                    onLinkShare()
+                    onDismiss()
+                },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
                 Text("Link Share")
             }
         }
 
-        Button(onClick = {
-            onEdit()
-            onDismiss()
-        }) {
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                onEdit()
+                onDismiss()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Edit")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(onClick = {
-            onDownloadPdf(document)
-            onDismiss()
-        }) {
+        Button(
+            onClick = {
+                onDownloadPdf(document)
+                onDismiss()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Download as PDF")
         }
     }
 }
+
 
 
 

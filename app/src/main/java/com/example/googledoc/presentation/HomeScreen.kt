@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewHeadline
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -32,14 +31,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,7 +46,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,43 +77,46 @@ fun HomeScreen(
     val isLoading by documentViewModel.isLoading.observeAsState(false)
     val offlineStatusMap by documentViewModel.offlineStatusMap.observeAsState(emptyMap())
     val currentUser = Firebase.auth.currentUser?.uid
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
     val loginViewModel: LoginViewModel = viewModel()
     val context = LocalContext.current
+    var selectedDocument by remember { mutableStateOf<Document?>(null) }
     // Fetch the user's documents when this screen loads
     LaunchedEffect(Unit) {
         documentViewModel.fetchDocument(documentId = currentUser!!)
     }
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Open)
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     ModalNavigationDrawer(drawerState = drawerState, drawerContent = {
-            ModalDrawerSheet {
-                Spacer(modifier = modifier.padding(top = 10.dp))
-                Text(
-                    text = "Google Doc",
-                    fontSize = TextDim.titleTextSize,
-                    fontFamily = FontDim.Bold,
-                    modifier = Modifier.padding(10.dp)
-                )
-                Spacer(modifier = modifier.padding(top = 10.dp))
-                HorizontalDivider()
-                NavigationDrawerItem(
-                    label = { Text(text = "Logout") },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.Logout,
-                            contentDescription = "logout"
-                        )
-                    },
-                    selected = false,
-                    onClick = {
-                        loginViewModel.signOut()
-                        navController.navigate(Routes.Login.route) {
-                            popUpTo(0) // Clear the backstack
-                        }
+        ModalDrawerSheet {
+            Spacer(modifier = modifier.padding(top = 10.dp))
+            Text(
+                text = "Google Doc",
+                fontSize = TextDim.titleTextSize,
+                fontFamily = FontDim.Bold,
+                modifier = Modifier.padding(10.dp)
+            )
+            Spacer(modifier = modifier.padding(top = 10.dp))
+            HorizontalDivider()
+            NavigationDrawerItem(
+                label = { Text(text = "Logout") },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = "logout"
+                    )
+                },
+                selected = false,
+                onClick = {
+                    loginViewModel.signOut()
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(0) // Clear the backstack
                     }
-                )
-            }
-        }) {
+                }
+            )
+        }
+    }) {
         Scaffold(topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -188,7 +189,8 @@ fun HomeScreen(
                 ) {
                     LazyColumn(modifier = modifier.padding(16.dp)) {
                         items(documents) { document ->
-                            DocumentItem(document = document,
+                            DocumentItem(
+                                document = document,
                                 onClick = {
                                     navController.navigate(
                                         Routes.View.route.replace(
@@ -196,45 +198,90 @@ fun HomeScreen(
                                         )
                                     )
                                 },
-                                onDelete = {
-                                    documentViewModel.deleteDocument(document.documentId)
-                                },
-                                onShare = {
-
-                                },
-                                isOffline = offlineStatusMap[document.documentId] ?: false,
-                                onToggleOffline = { save ->
-                                    if (save) {
-                                        documentViewModel.saveDocumentOffline(
-                                            context = context,
-                                            document = document
-                                        )
-                                    } else {
-                                        documentViewModel.removeDocumentOffline(
-                                            context = context,
-                                            document = document
-                                        )
+                                onMore = {
+                                    selectedDocument = document
+                                    scope.launch {
+                                        sheetState.show()
                                     }
-                                }
+                                },
                             )
+                            // Single ModalBottomSheet outside of LazyColumn
+                            if (selectedDocument != null) {
+                                ModalBottomSheet(
+                                    onDismissRequest = {
+                                        selectedDocument = null
+                                        scope.launch {
+                                            sheetState.hide()
+                                        }
+                                    },
+                                    sheetState = sheetState
+                                ) {
+                                    NavigationDrawerItem(
+                                        label = { Text(text = "Delete") },
+                                        icon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "delete"
+                                            )
+                                        },
+                                        selected = false,
+                                        onClick = {
+                                            selectedDocument?.let { document ->
+                                                documentViewModel.deleteDocument(document.documentId)
+                                                scope.launch {
+                                                    sheetState.hide()
+                                                    selectedDocument = null
+                                                }
+                                            }
+                                        }
+                                    )
+                                    NavigationDrawerItem(
+                                        label = { Text(text = "Save Offline") },
+                                        icon = {
+                                            val isOffline =
+                                                offlineStatusMap[selectedDocument?.documentId]
+                                                    ?: false
+                                            Icon(
+                                                imageVector = if (isOffline) Icons.Default.Check else Icons.Default.Download,
+                                                contentDescription = if (isOffline) "Remove from Offline" else "Save Offline"
+                                            )
+                                        },
+                                        selected = false,
+                                        onClick = {
+                                            selectedDocument?.let { document ->
+                                                if (offlineStatusMap[document.documentId] == true) {
+                                                    documentViewModel.removeDocumentOffline(
+                                                        context,
+                                                        document
+                                                    )
+                                                } else {
+                                                    documentViewModel.saveDocumentOffline(
+                                                        context,
+                                                        document
+                                                    )
+                                                }
+                                                scope.launch {
+                                                    sheetState.hide()
+                                                    selectedDocument = null
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-
             }
         }
     }
 }
 
-
 @Composable
 fun DocumentItem(
     document: Document,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
-    onShare: () -> Unit,
-    isOffline: Boolean, // Track if the document is saved offline
-    onToggleOffline: (Boolean) -> Unit
+    onMore: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -251,17 +298,8 @@ fun DocumentItem(
             )
         }
         Row {
-            IconButton(onClick = onShare) {
+            IconButton(onClick = onMore) {
                 Icon(Icons.Default.MoreVert, contentDescription = "Share")
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
-            }
-            IconButton(onClick = { onToggleOffline(!isOffline) }) {
-                Icon(
-                    imageVector = if (isOffline) Icons.Default.Check else Icons.Default.Download,
-                    contentDescription = if (isOffline) "Remove from Offline" else "Save Offline"
-                )
             }
         }
     }
