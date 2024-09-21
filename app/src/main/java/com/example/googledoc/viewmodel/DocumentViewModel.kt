@@ -12,7 +12,6 @@ import com.example.googledoc.data.Document
 import com.example.googledoc.data.DocumentEntity
 import com.example.googledoc.domain.DocumentDao
 import com.example.googledoc.domain.repository.DocumentRepository
-import com.google.android.gms.tasks.Tasks.await
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -62,18 +61,21 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
-    fun clearSuccessMessage() {
-        _success.postValue(null)
-    }
     fun fetchDocument(documentId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val documentSnapshot = docRef.document(documentId).get().await()
                 val document = documentSnapshot.toObject(Document::class.java)
 
-                if (documentSnapshot.exists() && document != null) {
+                if (document != null) {
+                    // Log the fetched document
+                    Log.d("FetchDocument", "Fetched document: $document")
+
                     // Ensure user has access
-                    val sharedWith = documentSnapshot.get("sharedWith") as? Map<*, *>
+                    val sharedWith = documentSnapshot.get("sharedWith") as? Map<String, String>
+                    Log.d("FetchDocument", "Shared with: $sharedWith")
+
+                    // Check if the userId is available
                     val permission = sharedWith?.get(userId)
                     if (permission != null) {
                         _currentDocument.postValue(document)
@@ -84,6 +86,7 @@ class DocumentViewModel @Inject constructor(
                     _error.postValue("Document does not exist")
                 }
             } catch (e: Exception) {
+                Log.e("FetchDocumentError", "Error fetching document: ${e.message}")
                 _error.postValue(e.message)
             }
         }
@@ -151,6 +154,7 @@ class DocumentViewModel @Inject constructor(
             }
         }
     }
+
     private suspend fun getUserIdByEmail(email: String): String? {
         return try {
             val querySnapshot = db.collection(Database.Users)
@@ -165,43 +169,50 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
-    suspend fun shareDocument(documentId: String, email: String, permission: String) {
-        // Validate the permission value
-        if (permission != "view" && permission != "edit") {
-            _error.postValue("Invalid permission type")
-            return
-        }
-
-        // Fetch the user ID by email
-        val userId = getUserIdByEmail(email)
-
-        if (userId == null) {
-            _error.postValue("User with this email does not exist")
-            return
-        }
-
+    suspend fun editPermission(documentId: String, email: String, permission: String) {
         viewModelScope.launch(Dispatchers.IO) {
+            Log.d("TAG EDIT", "FirestoreUpdate 1")
+
+            if (permission != "view" && permission != "edit") {
+                _error.postValue("Invalid permission type")
+                return@launch
+            }
+            Log.d("TAG EDIT", "Permission type validated.")
+
+            val userId = getUserIdByEmail(email) ?: run {
+                Log.d("TAG EDIT", "User ID not found for email: $email")
+                _error.postValue("User with this email does not exist")
+                return@launch
+            }
+
+            Log.d("TAG EDIT", "User ID retrieved: $userId")
+
             _isLoading.postValue(true)
             try {
-                // Prepare the update map for Firestore
-                val updates = mapOf(
-                    "sharedWith.$userId" to permission
-                )
-                // Update the document's shared permissions
+                Log.d("TAG EDIT", "Fetching current document.")
+                val documentSnapshot = docRef.document(documentId).get().await()
+                val sharedWith = documentSnapshot.get("sharedWith") as? Map<String, String> ?: emptyMap()
+
+                Log.d("TAG EDIT", "Current sharedWith map retrieved: $sharedWith")
+
+                // Create a new map for the update
+                val updatedSharedWith = sharedWith.toMutableMap()
+                updatedSharedWith[userId] = permission // Update or add the new permission
+                Log.d("TAG EDIT", "Updated sharedWith map: $updatedSharedWith")
+
+                // Update the document with the new sharedWith map
+                val updates = mapOf("sharedWith" to updatedSharedWith)
+                Log.d("TAG EDIT", "Updating document $documentId with: $updates")
+
                 docRef.document(documentId).update(updates).await()
-
-                // Optionally, refresh the current document to show updated shared permissions
-                fetchDocument(documentId)
-
-                // Optionally post a success message
-                _success.postValue("Document shared successfully")
-
+                Log.d("TAG EDIT", "Document updated successfully.")
+                _success.postValue("Document shared successfully with $email as $permission")
             } catch (e: Exception) {
-                // Post any caught errors to the error LiveData
+                Log.e("TAG EDIT", "Error updating document: ${e.message}")
                 _error.postValue(e.message ?: "An error occurred")
             } finally {
-                // Ensure loading state is reset
                 _isLoading.postValue(false)
+                Log.d("TAG EDIT", "Loading state reset.")
             }
         }
     }
@@ -295,6 +306,7 @@ class DocumentViewModel @Inject constructor(
             }
         }
     }
+
     private suspend fun updateOfflineStatusForDocuments() {
         val documentList = _documents.value ?: return
         val statusMap = documentList.associate { doc ->

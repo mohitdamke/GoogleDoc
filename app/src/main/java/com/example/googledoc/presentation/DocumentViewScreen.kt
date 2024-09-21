@@ -6,17 +6,14 @@ import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -24,7 +21,6 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,7 +33,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -48,6 +43,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,8 +77,6 @@ fun DocumentViewScreen(
     val documentViewModel: DocumentViewModel = hiltViewModel()
     val document by documentViewModel.currentDocument.observeAsState()
     val isLoading by documentViewModel.isLoading.observeAsState(false)
-    val errorMessage by documentViewModel.error.observeAsState()
-    val successMessage by documentViewModel.success.observeAsState()
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -93,24 +87,7 @@ fun DocumentViewScreen(
         println("Document fetched: ${documentViewModel.currentDocument.value}")
     }
 
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-        }
-    }
-    // Display a Snackbar or Toast for the success message
-    successMessage?.let { message ->
-        // Use Snackbar for a brief notification
-        Snackbar(
-            action = {
-                Button(onClick = { documentViewModel.clearSuccessMessage() }) {
-                    Text("OK")
-                }
-            }
-        ) {
-            Text(message)
-        }
-    }
+
 
     Scaffold(
         floatingActionButton = {
@@ -233,7 +210,7 @@ fun DocumentViewScreen(
                         },
                         onShareDocument = { email, permission ->
                             scope.launch {
-                                documentViewModel.shareDocument(
+                                documentViewModel.editPermission(
                                     documentId = documentId,
                                     email = email,
                                     permission = permission
@@ -263,14 +240,14 @@ fun DocumentBottomSheetContent(
     document: Document
 ) {
     val context = LocalContext.current
-    var emailToShare by remember { mutableStateOf("") }
+    var emailToShare by rememberSaveable { mutableStateOf("") }
     var permission by remember { mutableStateOf("view") } // Default to view permission
     var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
-            .padding(16.dp)
             .fillMaxWidth()
+            .padding(16.dp)
     ) {
 
         // Sharing Section
@@ -285,33 +262,42 @@ fun DocumentBottomSheetContent(
             value = emailToShare,
             onValueChange = { emailToShare = it },
             label = { Text("Enter email to share with") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(100.dp)
         )
+
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Permission selector (view or edit)
-        Text(text = "Permission:", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
+// Permission selection dropdown
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
+            // Icon button to toggle dropdown
             IconButton(onClick = { expanded = !expanded }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More"
                 )
             }
+
+            // Dropdown menu for selecting permissions
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
                 DropdownMenuItem(
                     text = { Text("View") },
-                    onClick = { permission = "view" }
+                    onClick = {
+                        permission = "view"
+                        expanded = false // Close the dropdown after selection
+                    }
                 )
                 DropdownMenuItem(
                     text = { Text("Edit") },
-                    onClick = { permission = "edit" }
+                    onClick = {
+                        permission = "edit"
+                        expanded = false // Close the dropdown after selection
+                    }
                 )
             }
         }
@@ -320,18 +306,19 @@ fun DocumentBottomSheetContent(
 
         // Share Document Button
         NavigationDrawerItem(
-            label = { Text("Share Document") },
+            label = { Text("Edit Permission") },
             icon = {
-                Icon(Icons.Default.Share, contentDescription = "Share Document")
+                Icon(Icons.Default.Edit, contentDescription = "Edit Permission")
             },
             selected = false,
             onClick = {
-                if (emailToShare.isNotEmpty()) {
+                if (emailToShare.isNotEmpty() && permission.isNotEmpty()) {
                     onShareDocument(emailToShare, permission)
+                    Toast.makeText(context, "Document shared with $emailToShare as $permission", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Email is invalid", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Please enter a valid email and select a permission", Toast.LENGTH_SHORT).show()
                 }
-                onDismiss()
+                onDismiss() // Dismiss the drawer after the action
             }
         )
 
@@ -394,8 +381,6 @@ fun DocumentBottomSheetContent(
         )
     }
 }
-
-
 
 
 //

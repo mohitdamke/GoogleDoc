@@ -17,6 +17,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -27,9 +28,10 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-
+    private val firestore = FirebaseFirestore.getInstance()
     private val _isUserLoggedIn = MutableLiveData<Boolean>()
     val isUserLoggedIn: LiveData<Boolean> get() = _isUserLoggedIn
+
     // Loading state for data fetch operations
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
@@ -67,13 +69,36 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
                 try {
                     auth.signInWithCredential(credential).addOnCompleteListener { task ->
-                        onResult(task.isSuccessful)
+                        if (task.isSuccessful) {
+                            // User signed in successfully
+                            val user = auth.currentUser
+                            user?.let {
+                                // Store user data in Firestore
+                                val userData = hashMapOf(
+                                    "email" to it.email,
+                                    "name" to it.displayName,
+                                    "uid" to it.uid
+                                )
+
+                                firestore.collection("users").document(it.uid)
+                                    .set(userData)
+                                    .addOnSuccessListener {
+                                        Log.d("Firestore", "User data stored successfully")
+                                        onResult(true)
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("Firestore", "Error storing user data: ${e.message}")
+                                        onResult(false)
+                                    }
+                            }
+                        } else {
+                            onResult(false)
+                        }
                     }
                 } catch (e: Exception) {
                     onResult(false)
-                }
-                finally {
-                    _isLoading.postValue(true)
+                } finally {
+                    _isLoading.postValue(false)
                 }
             }
         } ?: run {
