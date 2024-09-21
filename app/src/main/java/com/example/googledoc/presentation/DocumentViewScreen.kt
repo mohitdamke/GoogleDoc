@@ -37,6 +37,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -81,6 +82,7 @@ fun DocumentViewScreen(
     val document by documentViewModel.currentDocument.observeAsState()
     val isLoading by documentViewModel.isLoading.observeAsState(false)
     val errorMessage by documentViewModel.error.observeAsState()
+    val successMessage by documentViewModel.success.observeAsState()
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -94,6 +96,19 @@ fun DocumentViewScreen(
     LaunchedEffect(errorMessage) {
         errorMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
+    // Display a Snackbar or Toast for the success message
+    successMessage?.let { message ->
+        // Use Snackbar for a brief notification
+        Snackbar(
+            action = {
+                Button(onClick = { documentViewModel.clearSuccessMessage() }) {
+                    Text("OK")
+                }
+            }
+        ) {
+            Text(message)
         }
     }
 
@@ -247,6 +262,7 @@ fun DocumentBottomSheetContent(
     onShareDocument: (String, String) -> Unit,  // email and permission
     document: Document
 ) {
+    val context = LocalContext.current
     var emailToShare by remember { mutableStateOf("") }
     var permission by remember { mutableStateOf("view") } // Default to view permission
     var expanded by remember { mutableStateOf(false) }
@@ -310,7 +326,11 @@ fun DocumentBottomSheetContent(
             },
             selected = false,
             onClick = {
-                onShareDocument(emailToShare, permission)
+                if (emailToShare.isNotEmpty()) {
+                    onShareDocument(emailToShare, permission)
+                } else {
+                    Toast.makeText(context, "Email is invalid", Toast.LENGTH_SHORT).show()
+                }
                 onDismiss()
             }
         )
@@ -374,14 +394,6 @@ fun DocumentBottomSheetContent(
         )
     }
 }
-
-
-
-
-
-
-
-
 
 
 

@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,9 +16,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.googledoc.R
@@ -40,12 +45,13 @@ import com.google.android.gms.common.api.ApiException
 
 @Composable
 fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
-    val loginViewModel: LoginViewModel = viewModel()
+    val loginViewModel: LoginViewModel = hiltViewModel()
     val activity = LocalContext.current as Activity
-
+    val isLoading by loginViewModel.isLoading.observeAsState(false)
+    val isLoggedIn by loginViewModel.isUserLoggedIn.observeAsState(initial = false)
     // Check if the user is already logged in
-    if (loginViewModel.isUserLoggedIn()) {
         LaunchedEffect(Unit) {
+            if (isLoggedIn) {
             navController.navigate(Routes.Home.route) {
                 popUpTo(0) // Clear backstack
             }
@@ -77,7 +83,11 @@ fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
             )
         }
     }
-
+    if (isLoading) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -154,6 +164,6 @@ fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
                 )
             }
         }
-    }
+    }}
 
 }

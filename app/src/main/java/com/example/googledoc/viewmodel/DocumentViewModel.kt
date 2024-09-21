@@ -43,6 +43,8 @@ class DocumentViewModel @Inject constructor(
     private val _offlineStatusMap = MutableLiveData<Map<String, Boolean>>(emptyMap())
     val offlineStatusMap: LiveData<Map<String, Boolean>> get() = _offlineStatusMap
 
+    private val _success = MutableLiveData<String>()
+    val success: LiveData<String> get() = _success
 
     // Loading state for data fetch operations
     private val _isLoading = MutableLiveData<Boolean>()
@@ -60,7 +62,9 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
-
+    fun clearSuccessMessage() {
+        _success.postValue(null)
+    }
     fun fetchDocument(documentId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -147,20 +151,19 @@ class DocumentViewModel @Inject constructor(
             }
         }
     }
-
     private suspend fun getUserIdByEmail(email: String): String? {
         return try {
             val querySnapshot = db.collection(Database.Users)
                 .whereEqualTo(Database.Email, email)
                 .get()
                 .await()
+            // Return the first user ID found
             querySnapshot.documents.firstOrNull()?.id
         } catch (e: Exception) {
             Log.e("Firestore", "Error fetching user ID by email", e)
             null
         }
     }
-
 
     suspend fun shareDocument(documentId: String, email: String, permission: String) {
         // Validate the permission value
@@ -169,7 +172,7 @@ class DocumentViewModel @Inject constructor(
             return
         }
 
-        // Fetch the user ID by email, assuming you have a way to get the user ID by their email
+        // Fetch the user ID by email
         val userId = getUserIdByEmail(email)
 
         if (userId == null) {
@@ -180,17 +183,24 @@ class DocumentViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.postValue(true)
             try {
-                // Update the `sharedWith` field in Firestore with the email and permission
+                // Prepare the update map for Firestore
                 val updates = mapOf(
                     "sharedWith.$userId" to permission
                 )
+                // Update the document's shared permissions
                 docRef.document(documentId).update(updates).await()
 
                 // Optionally, refresh the current document to show updated shared permissions
                 fetchDocument(documentId)
+
+                // Optionally post a success message
+                _success.postValue("Document shared successfully")
+
             } catch (e: Exception) {
-                _error.postValue(e.message)
+                // Post any caught errors to the error LiveData
+                _error.postValue(e.message ?: "An error occurred")
             } finally {
+                // Ensure loading state is reset
                 _isLoading.postValue(false)
             }
         }

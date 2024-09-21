@@ -1,5 +1,7 @@
 package com.example.googledoc.presentation
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,7 +67,9 @@ import com.example.googledoc.viewmodel.DocumentViewModel
 import com.example.googledoc.viewmodel.LoginViewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,16 +82,27 @@ fun HomeScreen(
     val offlineStatusMap by documentViewModel.offlineStatusMap.observeAsState(emptyMap())
     val currentUser = Firebase.auth.currentUser?.uid
     val sheetState = rememberModalBottomSheetState()
-    var showBottomSheet by remember { mutableStateOf(false) }
-    val loginViewModel: LoginViewModel = viewModel()
+    val scope = rememberCoroutineScope()
+    val loginViewModel: LoginViewModel = hiltViewModel()
     val context = LocalContext.current
     var selectedDocument by remember { mutableStateOf<Document?>(null) }
+
+
     // Fetch the user's documents when this screen loads
     LaunchedEffect(Unit) {
-        documentViewModel.fetchDocument(documentId = currentUser!!)
+        if (currentUser != null) {
+            documentViewModel.fetchDocument(documentId = currentUser)
+        }
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        if (currentUser == null) {
+            navController.navigate(Routes.Login.route) {
+                popUpTo(0) // Clear backstack
+            }
+        }
     }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     ModalNavigationDrawer(drawerState = drawerState, drawerContent = {
         ModalDrawerSheet {
             Spacer(modifier = modifier.padding(top = 10.dp))
@@ -109,9 +124,14 @@ fun HomeScreen(
                 },
                 selected = false,
                 onClick = {
+                    loginViewModel.getGoogleSignInClient(context as Activity) // Ensure it's initialized
                     loginViewModel.signOut()
-                    navController.navigate(Routes.Login.route) {
-                        popUpTo(0) // Clear the backstack
+                    scope.launch {
+                        Toast.makeText(context, "Signed out successfully.", Toast.LENGTH_SHORT)
+                            .show()
+                        navController.navigate(Routes.Login.route) {
+                            popUpTo(Routes.Home.route) { inclusive = true }
+                        }
                     }
                 }
             )
