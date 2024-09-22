@@ -6,7 +6,7 @@ data class Document(
     val content: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val ownerId: String = "",
-    val ownerEmail: String = "",  // Added field for owner's email
+    val ownerEmail: String = "",
     val sharedWith: Map<String, String> = emptyMap(),
 )
 

@@ -61,6 +61,25 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
+//    fun fetchUserData() {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            try {
+//                val userId = FirebaseAuth.getInstance().currentUser?.uid
+//                userId?.let {user ->
+//                    val document = db.collection("users").document(user).get().await()
+//                    if (document.exists()) {
+//                        val email = document.getString("email") ?: ""
+//                        val name = document.getString("name") ?: ""
+//                        // Store in SharedPreferences
+//                        sharedPreferencesManager.saveUserData(email = email, name = name, uid = user)
+//                    }
+//                }
+//            } catch (e: Exception) {
+//                _error.postValue(e.message)
+//            }
+//        }
+//    }
+
     fun fetchDocument(documentId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -100,7 +119,8 @@ class DocumentViewModel @Inject constructor(
                 documentId = documentId,
                 title = title,
                 content = content,
-                ownerId = userId ?: return@launch,  // Handle null case by stopping execution,
+                ownerId = userId ?: return@launch,
+//                ownerEmail = ownerEmail,
                 sharedWith = mapOf(userId to "edit") // Default share with owner as "edit"
             )
 
@@ -155,64 +175,34 @@ class DocumentViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getUserIdByEmail(email: String): String? {
-        return try {
-            val querySnapshot = db.collection(Database.Users)
-                .whereEqualTo(Database.Email, email)
-                .get()
-                .await()
-            // Return the first user ID found
-            querySnapshot.documents.firstOrNull()?.id
-        } catch (e: Exception) {
-            Log.e("Firestore", "Error fetching user ID by email", e)
-            null
-        }
-    }
 
     suspend fun editPermission(documentId: String, email: String, permission: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            Log.d("TAG EDIT", "FirestoreUpdate 1")
-
+            // Validate the permission type
             if (permission != "view" && permission != "edit") {
                 _error.postValue("Invalid permission type")
                 return@launch
             }
-            Log.d("TAG EDIT", "Permission type validated.")
-
-            val userId = getUserIdByEmail(email) ?: run {
-                Log.d("TAG EDIT", "User ID not found for email: $email")
-                _error.postValue("User with this email does not exist")
-                return@launch
-            }
-
-            Log.d("TAG EDIT", "User ID retrieved: $userId")
 
             _isLoading.postValue(true)
             try {
-                Log.d("TAG EDIT", "Fetching current document.")
+                // Fetch the current document
                 val documentSnapshot = docRef.document(documentId).get().await()
-                val sharedWith = documentSnapshot.get("sharedWith") as? Map<String, String> ?: emptyMap()
+                val sharedWith =
+                    documentSnapshot.get("sharedWith") as? Map<String, String> ?: emptyMap()
 
-                Log.d("TAG EDIT", "Current sharedWith map retrieved: $sharedWith")
-
-                // Create a new map for the update
+                // Create a mutable map to update sharedWith
                 val updatedSharedWith = sharedWith.toMutableMap()
-                updatedSharedWith[userId] = permission // Update or add the new permission
-                Log.d("TAG EDIT", "Updated sharedWith map: $updatedSharedWith")
+                updatedSharedWith[email] = permission // Update or add the permission for the email
 
-                // Update the document with the new sharedWith map
-                val updates = mapOf("sharedWith" to updatedSharedWith)
-                Log.d("TAG EDIT", "Updating document $documentId with: $updates")
+                // Update the Firestore document
+                docRef.document(documentId).update("sharedWith", updatedSharedWith).await()
 
-                docRef.document(documentId).update(updates).await()
-                Log.d("TAG EDIT", "Document updated successfully.")
-                _success.postValue("Document shared successfully with $email as $permission")
+                _success.postValue("Permission granted to $email for $permission access.")
             } catch (e: Exception) {
-                Log.e("TAG EDIT", "Error updating document: ${e.message}")
                 _error.postValue(e.message ?: "An error occurred")
             } finally {
                 _isLoading.postValue(false)
-                Log.d("TAG EDIT", "Loading state reset.")
             }
         }
     }

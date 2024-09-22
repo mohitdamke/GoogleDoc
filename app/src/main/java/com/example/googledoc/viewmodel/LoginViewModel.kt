@@ -64,38 +64,47 @@ class LoginViewModel @Inject constructor() : ViewModel() {
     fun firebaseAuthWithGoogle(account: GoogleSignInAccount?, onResult: (Boolean) -> Unit) {
         account?.let {
             val credential: AuthCredential = GoogleAuthProvider.getCredential(account.idToken, null)
+            _isLoading.postValue(true)
+
             viewModelScope.launch {
-                _isLoading.postValue(false)
-
                 try {
-                    auth.signInWithCredential(credential).addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            // User signed in successfully
-                            val user = auth.currentUser
-                            user?.let {
-                                // Store user data in Firestore
-                                val userData = hashMapOf(
-                                    "email" to it.email,
-                                    "name" to it.displayName,
-                                    "uid" to it.uid
-                                )
+                    val authResult = auth.signInWithCredential(credential).await()
+                    val user = authResult.user
 
-                                firestore.collection("users").document(it.uid)
-                                    .set(userData)
-                                    .addOnSuccessListener {
-                                        Log.d("Firestore", "User data stored successfully")
-                                        onResult(true)
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.e("Firestore", "Error storing user data: ${e.message}")
-                                        onResult(false)
-                                    }
-                            }
+                    user?.let {
+                        // Fallback to GoogleSignInAccount for email and display name
+                        val email = account.email ?: it.email   // Get email from GoogleSignInAccount first, fallback to FirebaseUser
+                        val displayName = account.displayName ?: it.displayName  // Get name from GoogleSignInAccount first
+
+                        // Ensure email is not null
+                        if (email != null) {
+                            // Store user info in Firestore
+                            val userData = hashMapOf(
+                                "email" to email,            // Use email from GoogleSignInAccount or FirebaseUser
+                                "name" to displayName,       // Use displayName from GoogleSignInAccount or FirebaseUser
+                                "uid" to it.uid
+                            )
+
+                            // Save the user data to Firestore
+                            firestore.collection("users").document(it.uid)
+                                .set(userData)
+                                .addOnSuccessListener {
+                                    Log.d("Firestore", "User data stored successfully")
+                                    onResult(true)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("Firestore", "Error storing user data: ${e.message}")
+                                    onResult(false)
+                                }
                         } else {
+                            Log.e("Firestore", "Error: Email is null")
                             onResult(false)
                         }
+                    } ?: run {
+                        onResult(false)
                     }
                 } catch (e: Exception) {
+                    Log.e("FirebaseAuth", "Google sign-in failed: ${e.message}")
                     onResult(false)
                 } finally {
                     _isLoading.postValue(false)

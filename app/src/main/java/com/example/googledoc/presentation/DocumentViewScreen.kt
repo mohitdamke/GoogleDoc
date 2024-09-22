@@ -215,7 +215,7 @@ fun DocumentViewScreen(
                                     email = email,
                                     permission = permission
                                 )
-                            }
+                              }
                         },
                         document = document!!
                     )
