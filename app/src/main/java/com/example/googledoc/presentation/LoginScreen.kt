@@ -50,8 +50,8 @@ fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
     val isLoading by loginViewModel.isLoading.observeAsState(false)
     val isLoggedIn by loginViewModel.isUserLoggedIn.observeAsState(initial = false)
     // Check if the user is already logged in
-        LaunchedEffect(Unit) {
-            if (isLoggedIn) {
+    LaunchedEffect(Unit) {
+        if (isLoggedIn) {
             navController.navigate(Routes.Home.route) {
                 popUpTo(0) // Clear backstack
             }
@@ -83,11 +83,7 @@ fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
             )
         }
     }
-    if (isLoading) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else {
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -163,7 +159,16 @@ fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
                     color = Color.Black // Set text color to black for contrast on white button
                 )
             }
+                if (isLoading) {
+                    Column(
+                        modifier = modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
         }
-    }}
+    }
 
-}
