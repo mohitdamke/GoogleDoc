@@ -1,6 +1,7 @@
 package com.example.googledoc.presentation
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import android.webkit.WebView
@@ -56,9 +57,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavDeepLinkRequest.Builder.Companion.fromUri
 import com.example.googledoc.common.SaveAsPdf
 import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
+import com.example.googledoc.pdfView.ComposePDFViewer
 import com.example.googledoc.viewmodel.DocumentViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -71,7 +74,7 @@ fun DocumentViewScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
     documentId: String,  // Passed from navigation
-
+    pdfUri: Uri? = null // Optionally pass a Uri to a PDF file
 ) {
     val context = LocalContext.current
     val documentViewModel: DocumentViewModel = hiltViewModel()
@@ -81,13 +84,12 @@ fun DocumentViewScreen(
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
 
-    // Fetch the document data when the screen loads
-    LaunchedEffect(documentId) {
-        documentViewModel.fetchDocument(documentId)
-        println("Document fetched: ${documentViewModel.currentDocument.value}")
+    if (pdfUri == null) {
+        LaunchedEffect(documentId) {
+            documentViewModel.fetchDocument(documentId)
+            println("Document fetched: ${documentViewModel.currentDocument.value}")
+        }
     }
-
-
 
     Scaffold(
         floatingActionButton = {
@@ -108,11 +110,22 @@ fun DocumentViewScreen(
             })
         }
     ) { paddingValues ->
-        if (isLoading) {
+        if (isLoading && pdfUri == null) {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                Spacer(modifier = modifier.height(16.dp))
+
+                if (pdfUri != null) {
+                    // Display PDF using PDFView
+                    ComposePDFViewer()
+                } else {
             document?.let {
                 Column(
                     modifier = modifier
@@ -226,7 +239,7 @@ fun DocumentViewScreen(
             }
         }
     }
-}
+}}}
 
 @Composable
 fun DocumentBottomSheetContent(
@@ -381,143 +394,3 @@ fun DocumentBottomSheetContent(
         )
     }
 }
-
-
-//
-//@Composable
-//fun DocumentBottomSheetContent(
-//    modifier: Modifier = Modifier,
-//    onDismiss: () -> Unit,
-//    onFileShare: () -> Unit,
-//    onLinkShare: () -> Unit,
-//    onEdit: () -> Unit,
-//    onDownloadPdf: (Document) -> Unit,
-//    onShareDocument: (String, String) -> Unit,  // email and permission
-//    document: Document
-//) {
-//    var expanded by remember { mutableStateOf(false) }
-//    var emailToShare by remember { mutableStateOf("") }
-//    var permission by remember { mutableStateOf("view") } // Default to view permission
-//
-//    Column(
-//        modifier = modifier
-//            .padding(16.dp)
-//            .fillMaxWidth()
-//    ) {
-//
-//        // Sharing Section
-//        Text(
-//            text = "Share Document",
-//            style = MaterialTheme.typography.bodyLarge,
-//            modifier = Modifier.padding(bottom = 8.dp)
-//        )
-//
-//        // Email input field
-//        OutlinedTextField(
-//            value = emailToShare,
-//            onValueChange = { emailToShare = it },
-//            label = { Text("Enter email to share with") },
-//            modifier = Modifier.fillMaxWidth()
-//        )
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        // Permission selector (view or edit)
-//        Text(text = "Permission:", style = MaterialTheme.typography.bodyMedium)
-//        Spacer(modifier = Modifier.height(4.dp))
-//        Box(
-//            modifier = Modifier.fillMaxWidth()
-//        ) {
-//            IconButton(onClick = { expanded = !expanded }) {
-//                Icon(
-//                    imageVector = Icons.Default.MoreVert,
-//                    contentDescription = "More"
-//                )
-//            }
-//            DropdownMenu(
-//                expanded = expanded,
-//                onDismissRequest = { expanded = false }
-//            ) {
-//                DropdownMenuItem(
-//                    text = { Text("View") },
-//                    onClick = { permission = "view" }
-//                )
-//                DropdownMenuItem(
-//                    text = { Text("Edit") },
-//                    onClick = { permission = "edit" }
-//                )
-//            }
-//        }
-//
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        Button(
-//            onClick = {
-//                // Call the share document logic
-//                onShareDocument(emailToShare, permission)
-//                onDismiss()
-//            },
-//            modifier = Modifier.fillMaxWidth()
-//        ) {
-//            Text("Share Document")
-//        }
-//
-//        Spacer(modifier = Modifier.height(16.dp))
-//
-//        Row(
-//            horizontalArrangement = Arrangement.SpaceBetween,
-//            modifier = Modifier.fillMaxWidth()
-//        ) {
-//            Button(
-//                onClick = {
-//                    onFileShare()
-//                    onDismiss()
-//                },
-//                modifier = Modifier.weight(1f),
-//                contentPadding = PaddingValues(horizontal = 16.dp)
-//            ) {
-//                Text("File Share")
-//            }
-//
-//            Spacer(modifier = Modifier.width(8.dp))
-//
-//            Button(
-//                onClick = {
-//                    onLinkShare()
-//                    onDismiss()
-//                },
-//                modifier = Modifier.weight(1f),
-//                contentPadding = PaddingValues(horizontal = 16.dp)
-//            ) {
-//                Text("Link Share")
-//            }
-//        }
-//
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        Button(
-//            onClick = {
-//                onEdit()
-//                onDismiss()
-//            },
-//            modifier = Modifier.fillMaxWidth()
-//        ) {
-//            Text("Edit")
-//        }
-//
-//        Spacer(modifier = Modifier.height(8.dp))
-//
-//        Button(
-//            onClick = {
-//                onDownloadPdf(document)
-//                onDismiss()
-//            },
-//            modifier = Modifier.fillMaxWidth()
-//        ) {
-//            Text("Download as PDF")
-//        }
-//    }
-//}
-//
-//
-//
-//

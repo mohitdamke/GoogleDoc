@@ -1,7 +1,12 @@
 package com.example.googledoc.presentation
 
 import android.app.Activity
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,19 +16,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewHeadline
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -55,7 +65,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.googledoc.R
 import com.example.googledoc.common.FormatTimestamp
@@ -67,9 +76,7 @@ import com.example.googledoc.viewmodel.DocumentViewModel
 import com.example.googledoc.viewmodel.LoginViewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlin.coroutines.coroutineContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,6 +93,32 @@ fun HomeScreen(
     val loginViewModel: LoginViewModel = hiltViewModel()
     val context = LocalContext.current
     var selectedDocument by remember { mutableStateOf<Document?>(null) }
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    var pdfUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Launcher for file picker
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            pdfUri = it
+            navController.navigate(Routes.PdfView.route.replace("{pdfUri}", pdfUri.toString()))
+        }
+    }
+
+    val intent = (context as? Activity)?.intent
+    intent?.data?.let { uri ->
+        val pdfUriString = uri.toString()
+        val encodedUri = Uri.encode(pdfUriString)
+
+        // Navigate to the PDF viewer route with the encoded URI
+        navController.navigate("${Routes.PdfView.route}/$encodedUri")
+        Log.d("1111 LOG", "Received URI: $pdfUriString")
+
+        // Clear the intent data to avoid repeated navigation
+        context.intent.data = null
+    }
 
 
     // Fetch the user's documents when this screen loads
@@ -188,11 +221,7 @@ fun HomeScreen(
             )
         }, floatingActionButton = {
             FloatingActionButton(onClick = {
-                navController.navigate(
-                    Routes.Edit.route.replace(
-                        oldValue = "{documentId}", newValue = "new"
-                    )
-                )
+                showBottomSheet = true
             }) {
                 Icon(Icons.Default.Add, contentDescription = "New Document")
             }
@@ -293,10 +322,81 @@ fun HomeScreen(
                     }
                 }
             }
+            if (showBottomSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        showBottomSheet = false
+                    },
+                    sheetState = sheetState
+                ) {
+                    BottomSheetContent(
+                        onNewDocument = {
+                            navController.navigate(
+                                Routes.Edit.route.replace(
+                                    oldValue = "{documentId}", newValue = "new"
+                                )
+                            )
+                            showBottomSheet = false
+                        },
+                        onOpenFromStorage = {
+                            // Handle file picker for opening document from phone storage
+                            // PDF Uri to be passed to PdfViewer
+
+                            pickPdfFromStorage(filePickerLauncher)
+                            showBottomSheet = false
+                        }
+                    )
+                }
+            }
         }
     }
 }
 
+@Composable
+private fun BottomSheetContent(
+    modifier: Modifier = Modifier,
+    onNewDocument: () -> Unit,
+    onOpenFromStorage: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Select an Option",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Option to create a new document
+        Button(
+            onClick = onNewDocument,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Create, contentDescription = "New Document")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Create New Document")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Option to open a document from storage
+        Button(
+            onClick = onOpenFromStorage,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.FolderOpen, contentDescription = "Open Document from Storage")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Open from Phone Storage")
+        }
+    }
+}
+
+// Function to pick a PDF from storage
+fun pickPdfFromStorage(pdfPickerLauncher: ActivityResultLauncher<Array<String>>) {
+    pdfPickerLauncher.launch(arrayOf("application/pdf"))
+}
 @Composable
 fun DocumentItem(
     document: Document,

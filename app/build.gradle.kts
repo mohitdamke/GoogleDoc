@@ -120,5 +120,4 @@ dependencies {
     kapt("androidx.room:room-compiler:2.5.0")  // Add the kapt annotation processor for Room
     implementation("androidx.room:room-ktx:2.5.0")  // Op
 
-
 }

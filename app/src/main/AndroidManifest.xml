@@ -44,9 +44,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="https"
-                    android:host="googledoc"
-                    android:pathPrefix="/document" />
+                <data android:scheme="https"/>
+                <data android:host="googledoc"/>
+                <data android:pathPattern="/pdfview/.*"/>
+
+                <data android:scheme="content"/>
+                <data android:host="com.android.providers.downloads.documents"/>
+                <data android:pathPattern=".*"/>
             </intent-filter>
 
         </activity>
@@ -57,7 +61,6 @@
             android:theme="@style/Theme.GoogleDoc">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
