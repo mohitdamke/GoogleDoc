@@ -95,30 +95,16 @@ fun HomeScreen(
     var selectedDocument by remember { mutableStateOf<Document?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
 
-    var pdfUri by remember { mutableStateOf<Uri?>(null) }
-
     // Launcher for file picker
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            pdfUri = it
-            navController.navigate(Routes.PdfView.route.replace("{pdfUri}", pdfUri.toString()))
-        }
-    }
 
-    val intent = (context as? Activity)?.intent
-    intent?.data?.let { uri ->
-        val pdfUriString = uri.toString()
-        val encodedUri = Uri.encode(pdfUriString)
-
-        // Navigate to the PDF viewer route with the encoded URI
-        navController.navigate("${Routes.PdfView.route}/$encodedUri")
-        Log.d("1111 LOG", "Received URI: $pdfUriString")
-
-        // Clear the intent data to avoid repeated navigation
-        context.intent.data = null
-    }
+    val filePickerLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument(),
+            onResult = { uri: Uri? ->
+                uri?.let {
+                    val pdfUri = Uri.encode(it.toString())
+                    navController.navigate(Routes.PdfView.route.replace("{pdfUri}", pdfUri))
+                }
+            })
 
 
     // Fetch the user's documents when this screen loads
@@ -147,66 +133,54 @@ fun HomeScreen(
             )
             Spacer(modifier = modifier.padding(top = 10.dp))
             HorizontalDivider()
-            NavigationDrawerItem(
-                label = { Text(text = "Logout") },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "logout"
-                    )
-                },
-                selected = false,
-                onClick = {
-                    loginViewModel.getGoogleSignInClient(context as Activity) // Ensure it's initialized
-                    loginViewModel.signOut()
-                    scope.launch {
-                        Toast.makeText(context, "Signed out successfully.", Toast.LENGTH_SHORT)
-                            .show()
-                        navController.navigate(Routes.Login.route) {
-                            popUpTo(Routes.Home.route) { inclusive = true }
-                        }
+            NavigationDrawerItem(label = { Text(text = "Logout") }, icon = {
+                Icon(
+                    imageVector = Icons.Default.Logout, contentDescription = "logout"
+                )
+            }, selected = false, onClick = {
+                loginViewModel.getGoogleSignInClient(context as Activity) // Ensure it's initialized
+                loginViewModel.signOut()
+                scope.launch {
+                    Toast.makeText(context, "Signed out successfully.", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(Routes.Home.route) { inclusive = true }
                     }
                 }
-            )
+            })
         }
     }) {
         Scaffold(topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Row(
-                        modifier = modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.googledoc),
-                            contentDescription = "doc",
-                            modifier = modifier.size(30.dp)
-                        )
-                        Spacer(modifier = modifier.padding(start = 10.dp))
-                        Text(
-                            text = "Google Doc",
-                            fontSize = TextDim.titleTextSize,
-                            fontFamily = FontDim.Bold,
-                            modifier = Modifier
-                        )
-                    }
-                },
+            CenterAlignedTopAppBar(title = {
+                Row(
+                    modifier = modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.googledoc),
+                        contentDescription = "doc",
+                        modifier = modifier.size(30.dp)
+                    )
+                    Spacer(modifier = modifier.padding(start = 10.dp))
+                    Text(
+                        text = "Google Doc",
+                        fontSize = TextDim.titleTextSize,
+                        fontFamily = FontDim.Bold,
+                        modifier = Modifier
+                    )
+                }
+            },
 
                 actions = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
+                    Icon(imageVector = Icons.Default.Search,
                         contentDescription = "search",
                         modifier = modifier
                             .clickable {
                                 navController.navigate(Routes.Search.route)
                             }
-                            .size(30.dp)
-                    )
-                },
-                navigationIcon = {
-                    Icon(
-                        imageVector = Icons.Default.ViewHeadline,
+                            .size(30.dp))
+                }, navigationIcon = {
+                    Icon(imageVector = Icons.Default.ViewHeadline,
                         contentDescription = "more",
                         modifier = modifier
                             .size(30.dp)
@@ -217,8 +191,7 @@ fun HomeScreen(
                                     }
                                 }
                             })
-                }
-            )
+                })
         }, floatingActionButton = {
             FloatingActionButton(onClick = {
                 showBottomSheet = true
@@ -262,30 +235,23 @@ fun HomeScreen(
                                         scope.launch {
                                             sheetState.hide()
                                         }
-                                    },
-                                    sheetState = sheetState
+                                    }, sheetState = sheetState
                                 ) {
-                                    NavigationDrawerItem(
-                                        label = { Text(text = "Delete") },
-                                        icon = {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "delete"
-                                            )
-                                        },
-                                        selected = false,
-                                        onClick = {
-                                            selectedDocument?.let { document ->
-                                                documentViewModel.deleteDocument(document.documentId)
-                                                scope.launch {
-                                                    sheetState.hide()
-                                                    selectedDocument = null
-                                                }
+                                    NavigationDrawerItem(label = { Text(text = "Delete") }, icon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "delete"
+                                        )
+                                    }, selected = false, onClick = {
+                                        selectedDocument?.let { document ->
+                                            documentViewModel.deleteDocument(document.documentId)
+                                            scope.launch {
+                                                sheetState.hide()
+                                                selectedDocument = null
                                             }
                                         }
-                                    )
-                                    NavigationDrawerItem(
-                                        label = { Text(text = "Save Offline") },
+                                    })
+                                    NavigationDrawerItem(label = { Text(text = "Save Offline") },
                                         icon = {
                                             val isOffline =
                                                 offlineStatusMap[selectedDocument?.documentId]
@@ -300,13 +266,11 @@ fun HomeScreen(
                                             selectedDocument?.let { document ->
                                                 if (offlineStatusMap[document.documentId] == true) {
                                                     documentViewModel.removeDocumentOffline(
-                                                        context,
-                                                        document
+                                                        context, document
                                                     )
                                                 } else {
                                                     documentViewModel.saveDocumentOffline(
-                                                        context,
-                                                        document
+                                                        context, document
                                                     )
                                                 }
                                                 scope.launch {
@@ -314,8 +278,7 @@ fun HomeScreen(
                                                     selectedDocument = null
                                                 }
                                             }
-                                        }
-                                    )
+                                        })
                                 }
                             }
                         }
@@ -326,26 +289,22 @@ fun HomeScreen(
                 ModalBottomSheet(
                     onDismissRequest = {
                         showBottomSheet = false
-                    },
-                    sheetState = sheetState
+                    }, sheetState = sheetState
                 ) {
-                    BottomSheetContent(
-                        onNewDocument = {
-                            navController.navigate(
-                                Routes.Edit.route.replace(
-                                    oldValue = "{documentId}", newValue = "new"
-                                )
+                    BottomSheetContent(onNewDocument = {
+                        navController.navigate(
+                            Routes.Edit.route.replace(
+                                oldValue = "{documentId}", newValue = "new"
                             )
-                            showBottomSheet = false
-                        },
-                        onOpenFromStorage = {
-                            // Handle file picker for opening document from phone storage
-                            // PDF Uri to be passed to PdfViewer
+                        )
+                        showBottomSheet = false
+                    }, onOpenFromStorage = {
+                        // Handle file picker for opening document from phone storage
+                        // PDF Uri to be passed to PdfViewer
 
-                            pickPdfFromStorage(filePickerLauncher)
-                            showBottomSheet = false
-                        }
-                    )
+                        filePickerLauncher.launch(arrayOf("application/pdf"))
+                        showBottomSheet = false
+                    })
                 }
             }
         }
@@ -354,9 +313,7 @@ fun HomeScreen(
 
 @Composable
 private fun BottomSheetContent(
-    modifier: Modifier = Modifier,
-    onNewDocument: () -> Unit,
-    onOpenFromStorage: () -> Unit
+    modifier: Modifier = Modifier, onNewDocument: () -> Unit, onOpenFromStorage: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -371,8 +328,7 @@ private fun BottomSheetContent(
 
         // Option to create a new document
         Button(
-            onClick = onNewDocument,
-            modifier = Modifier.fillMaxWidth()
+            onClick = onNewDocument, modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Create, contentDescription = "New Document")
             Spacer(modifier = Modifier.width(8.dp))
@@ -383,8 +339,7 @@ private fun BottomSheetContent(
 
         // Option to open a document from storage
         Button(
-            onClick = onOpenFromStorage,
-            modifier = Modifier.fillMaxWidth()
+            onClick = onOpenFromStorage, modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.FolderOpen, contentDescription = "Open Document from Storage")
             Spacer(modifier = Modifier.width(8.dp))
@@ -394,9 +349,7 @@ private fun BottomSheetContent(
 }
 
 // Function to pick a PDF from storage
-fun pickPdfFromStorage(pdfPickerLauncher: ActivityResultLauncher<Array<String>>) {
-    pdfPickerLauncher.launch(arrayOf("application/pdf"))
-}
+
 @Composable
 fun DocumentItem(
     document: Document,

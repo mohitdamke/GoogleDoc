@@ -57,11 +57,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavDeepLinkRequest.Builder.Companion.fromUri
 import com.example.googledoc.common.SaveAsPdf
 import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
-import com.example.googledoc.pdfView.ComposePDFViewer
 import com.example.googledoc.viewmodel.DocumentViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -124,7 +122,7 @@ fun DocumentViewScreen(
 
                 if (pdfUri != null) {
                     // Display PDF using PDFView
-                    ComposePDFViewer()
+                    PdfViewerScreen(pdfUri = pdfUri.toString())
                 } else {
             document?.let {
                 Column(

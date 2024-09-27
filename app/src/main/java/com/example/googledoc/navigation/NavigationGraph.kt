@@ -26,45 +26,45 @@ import com.example.googledoc.presentation.SearchScreen
 @Composable
 fun NavigationGraph() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Routes.Login.route) {
+    NavHost(
+        navController = navController,
+        startDestination = Routes.Login.route
+    ) {
+
         composable(route = Routes.Login.route) {
             LoginScreen(navController = navController)
         }
+
+
         composable(route = Routes.Home.route) {
             HomeScreen(navController = navController)
         }
+
         composable(route = Routes.Search.route) {
             SearchScreen(navController = navController)
         }
+
         composable(route = Routes.Edit.route) {
             val documentId = it.arguments?.getString("documentId") ?: "new"
             EditDocumentScreen(navController = navController, documentId = documentId)
         }
-        composable(
-            route = "${Routes.PdfView.route}/{pdfUri}",
-            arguments = listOf(navArgument("pdfUri") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val pdfUriString = backStackEntry.arguments?.getString("pdfUri")
-            val pdfUri = pdfUriString?.let { Uri.parse(it) } // Convert String? to Uri
-            if (pdfUri != null ) {
-                PdfViewerScreen(pdfUri = pdfUri)
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("No PDF available to display")
-                }
-            }
 
-            // Replace with your actual PDF view composable
+        composable(
+            route = Routes.PdfView.route,
+            arguments = listOf(navArgument("pdfUri") {
+                type = NavType.StringType
+            })
+        ) { backStackEntry ->
+            val pdfUri = backStackEntry.arguments?.getString("pdfUri")
+            PdfViewerScreen(pdfUri = pdfUri, navController = navController)
         }
+
 
         composable(route = Routes.View.route) {
             val documentId = it.arguments?.getString("documentId") ?: "new"
             DocumentViewScreen(navController = navController, documentId = documentId)
         }
+
     }
 
 }

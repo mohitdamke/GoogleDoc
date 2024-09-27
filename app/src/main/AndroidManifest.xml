@@ -18,7 +18,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.GoogleDoc"
+        android:theme="@style/Theme.AppCompat.GoogleDoc"
         tools:targetApi="31">
 
         <provider
@@ -35,8 +35,8 @@
         <activity
             android:name=".DocumentActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.GoogleDoc">
+            android:label="@string/doc_name"
+            android:theme="@style/Theme.AppCompat.GoogleDoc">
 
             <!-- Deep linking intent filter -->
             <intent-filter>
@@ -51,14 +51,32 @@
                 <data android:scheme="content"/>
                 <data android:host="com.android.providers.downloads.documents"/>
                 <data android:pathPattern=".*"/>
+
             </intent-filter>
 
         </activity>
+
+        <activity
+            android:name=".OpenPdfActivity"
+            android:exported="true"
+            android:label="@string/open_doc_name"
+            android:theme="@style/Theme.AppCompat.GoogleDoc"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/pdf"/>
+                <data android:scheme="content"/>
+                <data android:scheme="file"/>
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.GoogleDoc">
+            android:theme="@style/Theme.AppCompat.GoogleDoc">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
