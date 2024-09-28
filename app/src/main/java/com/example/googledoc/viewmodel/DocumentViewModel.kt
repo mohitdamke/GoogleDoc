@@ -29,6 +29,8 @@ class DocumentViewModel @Inject constructor(
     private val db = FirebaseFirestore.getInstance()
     val docRef = db.collection(Database.Documents)
     private val userId = FirebaseAuth.getInstance().currentUser?.uid
+    private var userEmail: String? = null
+
 
     // LiveData for managing the list of documents
     private val _documents = MutableLiveData<List<Document>>()
@@ -42,9 +44,6 @@ class DocumentViewModel @Inject constructor(
     private val _offlineStatusMap = MutableLiveData<Map<String, Boolean>>(emptyMap())
     val offlineStatusMap: LiveData<Map<String, Boolean>> get() = _offlineStatusMap
 
-    private val _success = MutableLiveData<String>()
-    val success: LiveData<String> get() = _success
-
     // Loading state for data fetch operations
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
@@ -56,29 +55,61 @@ class DocumentViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            fetchUserEmail()  // Fetch user email at initialization
             _documents.value = repository.getDocuments(userId) // Fetch documents from repository
             updateOfflineStatusForDocuments()
         }
     }
 
-//    fun fetchUserData() {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            try {
-//                val userId = FirebaseAuth.getInstance().currentUser?.uid
-//                userId?.let {user ->
-//                    val document = db.collection("users").document(user).get().await()
-//                    if (document.exists()) {
-//                        val email = document.getString("email") ?: ""
-//                        val name = document.getString("name") ?: ""
-//                        // Store in SharedPreferences
-//                        sharedPreferencesManager.saveUserData(email = email, name = name, uid = user)
-//                    }
-//                }
-//            } catch (e: Exception) {
-//                _error.postValue(e.message)
-//            }
-//        }
-//    }
+    private suspend fun fetchUserEmail() {
+        userId?.let { id ->
+            try {
+                val document = db.collection("users").document(id).get().await()
+                userEmail = document.getString("email")  // Fetch email from Firestore
+            } catch (e: Exception) {
+                _error.postValue("Failed to fetch user email: ${e.message}")
+            }
+        }
+    }
+
+    fun updateDocument(documentId: String, newContent: String) {
+        val documentRef = FirebaseFirestore.getInstance().collection("documents").document(documentId)
+
+        documentRef.update("content", newContent)
+            .addOnSuccessListener {
+                Log.d("DocumentViewModel", "Document successfully updated")
+                // Regenerate PDF after update
+                regeneratePdf(documentId) // This method will take care of merging changes into the PDF
+            }
+            .addOnFailureListener { e ->
+                Log.w("DocumentViewModel", "Error updating document", e)
+            }
+    }
+    private fun regeneratePdf(documentId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Fetch the latest document content
+                val documentSnapshot = docRef.document(documentId).get().await()
+                val updatedContent = documentSnapshot.getString("content") ?: return@launch
+
+                // Generate the PDF based on the updated content
+                // Replace with your existing logic for PDF generation
+                val pdfFilePath = generatePdf(updatedContent, documentId)
+
+                Log.d("PDF Generation", "PDF updated at: $pdfFilePath")
+            } catch (e: Exception) {
+                Log.e("PDF Generation Error", "Error updating PDF", e)
+            }
+        }
+    }
+
+    // Example of generating PDF (replace this with your actual PDF generation logic)
+    private fun generatePdf(content: String, documentId: String): String {
+        // Your logic to create or update the PDF goes here.
+        // For instance, use PdfDocument to create a PDF with the new content.
+        return "path/to/your/pdf/file.pdf" // Return the path of the generated PDF
+    }
+
 
     fun fetchDocument(documentId: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -87,29 +118,23 @@ class DocumentViewModel @Inject constructor(
                 val document = documentSnapshot.toObject(Document::class.java)
 
                 if (document != null) {
-                    // Log the fetched document
                     Log.d("FetchDocument", "Fetched document: $document")
 
-                    // Ensure user has access
-                    val sharedWith = documentSnapshot.get("sharedWith") as? Map<String, String>
-                    Log.d("FetchDocument", "Shared with: $sharedWith")
+                    // Log the entire document snapshot data for debugging
+                    Log.d("FetchDocumentData", "Document data: ${documentSnapshot.data}")
 
-                    // Check if the userId is available
-                    val permission = sharedWith?.get(userId)
-                    if (permission != null) {
-                        _currentDocument.postValue(document)
-                    } else {
-                        _error.postValue("Access denied")
-                    }
+                    // Post the fetched document to LiveData
+                    _currentDocument.postValue(document)
                 } else {
                     _error.postValue("Document does not exist")
                 }
             } catch (e: Exception) {
-                Log.e("FetchDocumentError", "Error fetching document: ${e.message}")
+                Log.e("FetchDocumentError", "Error fetching document", e) // Log the exception
                 _error.postValue(e.message)
             }
         }
     }
+
 
     fun createDocument(title: String, content: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -120,8 +145,8 @@ class DocumentViewModel @Inject constructor(
                 title = title,
                 content = content,
                 ownerId = userId ?: return@launch,
-//                ownerEmail = ownerEmail,
-                sharedWith = mapOf(userId to "edit") // Default share with owner as "edit"
+                ownerEmail = userEmail ?: "", // Set ownerEmail
+                sharedWith = mapOf("$userEmail" to "edit") // Share with the owner's email
             )
 
             try {
@@ -198,7 +223,6 @@ class DocumentViewModel @Inject constructor(
                 // Update the Firestore document
                 docRef.document(documentId).update("sharedWith", updatedSharedWith).await()
 
-                _success.postValue("Permission granted to $email for $permission access.")
             } catch (e: Exception) {
                 _error.postValue(e.message ?: "An error occurred")
             } finally {

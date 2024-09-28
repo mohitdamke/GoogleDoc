@@ -23,6 +23,12 @@ import java.io.IOException
 
 // Function to save the document as a PDF and send a notification
 fun saveAsPdf(context: Context, document: Document) {
+    // Check for necessary permissions before proceeding
+    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        Toast.makeText(context, "Storage permission is required to save PDF", Toast.LENGTH_SHORT).show()
+        return
+    }
+
     // Create a PdfDocument instance
     val pdfDocument = PdfDocument()
 
@@ -60,6 +66,7 @@ fun saveAsPdf(context: Context, document: Document) {
             pdfDocument.writeTo(outputStream)
             Toast.makeText(context, "PDF saved at Downloads", Toast.LENGTH_SHORT).show()
             Log.d("PDFSave", "PDF saved successfully at Downloads")
+
 
             // Trigger notification after PDF is saved
             sendDownloadNotification(context, fileName, file.absolutePath)
@@ -109,13 +116,7 @@ private fun sendDownloadNotification(context: Context, fileName: String, filePat
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+            // You can request permission here if necessary
             return
         }
         notify(notificationId, notification)

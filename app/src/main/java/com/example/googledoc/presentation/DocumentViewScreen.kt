@@ -1,8 +1,5 @@
 package com.example.googledoc.presentation
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
@@ -57,15 +54,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.googledoc.R
-import com.example.googledoc.download.saveAsPdf
 import com.example.googledoc.data.Document
+import com.example.googledoc.download.saveAsPdf
 import com.example.googledoc.navigation.routes.Routes
 import com.example.googledoc.viewmodel.DocumentViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -80,12 +76,14 @@ fun DocumentViewScreen(
     pdfUri: Uri? = null // Optionally pass a Uri to a PDF file
 ) {
     val context = LocalContext.current
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()
     val documentViewModel: DocumentViewModel = hiltViewModel()
     val document by documentViewModel.currentDocument.observeAsState()
     val isLoading by documentViewModel.isLoading.observeAsState(false)
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
+    val userPermission = document?.sharedWith?.get(currentUserId) ?: "view"
 
     if (pdfUri == null) {
         LaunchedEffect(documentId) {
@@ -94,25 +92,24 @@ fun DocumentViewScreen(
         }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                showBottomSheet = true
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Document")
-            }
-        }, topBar = {
-            TopAppBar(title = {
-                Text(
-                    text = document?.title ?: "Loading",
-                    textAlign = TextAlign.Start,
-                    fontSize = 24.sp,
-                    minLines = 1,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-            })
+    Scaffold(floatingActionButton = {
+        FloatingActionButton(onClick = {
+            showBottomSheet = true
+        }) {
+            Icon(Icons.Default.Add, contentDescription = "Document")
         }
-    ) { paddingValues ->
+    }, topBar = {
+        TopAppBar(title = {
+            Text(
+                text = document?.title ?: "Loading",
+                textAlign = TextAlign.Start,
+                fontSize = 24.sp,
+                minLines = 1,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        })
+    }) { paddingValues ->
         if (isLoading && pdfUri == null) {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -129,120 +126,136 @@ fun DocumentViewScreen(
                     // Display PDF using PDFView
                     PdfViewerScreen(pdfUri = pdfUri.toString())
                 } else {
-            document?.let {
-                Column(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                ) {
-                    Spacer(modifier = modifier.height(16.dp))
-                    AndroidView(
-                        factory = { context ->
-                            WebView(context).apply {
-                                settings.domStorageEnabled = true
-                                loadData(it.content, "text/html", "UTF-8")
+                    document?.let {
+                        Column(
+                            modifier = modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                        ) {
+                            Spacer(modifier = modifier.height(16.dp))
 
-                                webViewClient = object : WebViewClient() {
-                                    @Deprecated("Deprecated in Java")
-                                    override fun shouldOverrideUrlLoading(
-                                        view: WebView?,
-                                        url: String?
-                                    ): Boolean {
-                                        view?.loadUrl(url!!) // Handle links inside the WebView
-                                        return true
+                            AndroidView(
+                                factory = { context ->
+                                    WebView(context).apply {
+                                        settings.domStorageEnabled = true
+                                        loadData(it.content, "text/html", "UTF-8")
+
+                                        webViewClient = object : WebViewClient() {
+                                            @Deprecated("Deprecated in Java")
+                                            override fun shouldOverrideUrlLoading(
+                                                view: WebView?, url: String?
+                                            ): Boolean {
+                                                view?.loadUrl(url!!) // Handle links inside the WebView
+                                                return true
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                        },
-                        modifier = modifier.weight(1f)
-                    )
+                                }, modifier = modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
-            }
-        }
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showBottomSheet = false
-                },
-                sheetState = sheetState
-            ) {
-                if (document != null) {
-                    DocumentBottomSheetContent(
-                        onDismiss = {
+                if (showBottomSheet) {
+                    ModalBottomSheet(
+                        onDismissRequest = {
                             showBottomSheet = false
-                        },
-                        // Pass a lambda that can invoke ShareDocument
-                        onLinkShare = {
-                            val shareText =
-                                "Check out this document: https://googledoc/document/$documentId"
-                            Log.d("TAG DocumentViewScreen ", "DocumentViewScreen: $documentId")
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                type = "text/plain"
-                            }
+                        }, sheetState = sheetState
+                    ) {
+                        if (document != null) {
+                            DocumentBottomSheetContent(
+                                onDismiss = {
+                                    showBottomSheet = false
+                                },
+                                // Pass a lambda that can invoke ShareDocument
+                                onLinkShare = {
+                                    val shareText =
+                                        "Check out this document: https://googledoc/document/$documentId"
+                                    Log.d(
+                                        "TAG DocumentViewScreen ", "DocumentViewScreen: $documentId"
+                                    )
+                                    val intent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                        type = "text/plain"
+                                    }
 
-                            // Start the share activity
-                            context.startActivity(Intent.createChooser(intent, "Share document"))
-                        },
-                        onFileShare = {
+                                    // Start the share activity
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            intent, "Share document"
+                                        )
+                                    )
+                                },
+                                onFileShare = {
 
-                            val file = File(
-                                context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
-                                "${document!!.title}.pdf"
+                                    val file = File(
+                                        context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+                                        "${document!!.title}.pdf"
+                                    )
+
+                                    // Write the content to the file (you'll need actual PDF generation code here)
+                                    val outputStream: OutputStream = FileOutputStream(file)
+                                    outputStream.use {
+                                        it.write(document!!.content.toByteArray()) // Write content to file
+                                    }
+
+                                    // Get the URI using FileProvider
+                                    val uri = FileProvider.getUriForFile(
+                                        context, "${context.packageName}.fileprovider", file
+                                    )
+
+                                    // Prepare the intent
+                                    val intent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        type = "application/pdf"
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // Grant temporary read access
+                                    }
+
+                                    // Start the share activity
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            intent, "Share document"
+                                        )
+                                    )
+                                },
+                                onEdit = {
+                                    if (userPermission == "edit") {
+                                        navController.navigate(
+                                            Routes.Edit.route.replace("{documentId}", documentId)
+                                        )
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "You don't have permission to edit this document.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                onDownloadPdf = { document ->
+                                    saveAsPdf(context, document)
+                                },
+                                onShareDocument = { email, permission ->
+                                    scope.launch {
+                                        documentViewModel.editPermission(
+                                            documentId = documentId,
+                                            email = email,
+                                            permission = permission
+                                        )
+                                    }
+                                },
+                                document = document!!
                             )
-
-                            // Write the content to the file (you'll need actual PDF generation code here)
-                            val outputStream: OutputStream = FileOutputStream(file)
-                            outputStream.use {
-                                it.write(document!!.content.toByteArray()) // Write content to file
-                            }
-
-                            // Get the URI using FileProvider
-                            val uri = FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                file
-                            )
-
-                            // Prepare the intent
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                type = "application/pdf"
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // Grant temporary read access
-                            }
-
-                            // Start the share activity
-                            context.startActivity(Intent.createChooser(intent, "Share document"))
-                        },
-                        onEdit = {
-                            navController.navigate(
-                                Routes.Edit.route.replace("{documentId}", documentId)
-                            )
-                        },
-                        onDownloadPdf = { document ->
-                            saveAsPdf(context, document)
-                        },
-                        onShareDocument = { email, permission ->
-                            scope.launch {
-                                documentViewModel.editPermission(
-                                    documentId = documentId,
-                                    email = email,
-                                    permission = permission
-                                )
-                              }
-                        },
-                        document = document!!
-                    )
-                } else {
-                    // Fallback content if document is null
-                    Text("No document available")
+                        } else {
+                            // Fallback content if document is null
+                            Text("No document available")
+                        }
+                    }
                 }
             }
         }
     }
-}}}
+}
 
 @Composable
 fun DocumentBottomSheetContent(
@@ -291,109 +304,82 @@ fun DocumentBottomSheetContent(
             // Icon button to toggle dropdown
             IconButton(onClick = { expanded = !expanded }) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More"
+                    imageVector = Icons.Default.MoreVert, contentDescription = "More"
                 )
             }
 
             // Dropdown menu for selecting permissions
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("View") },
-                    onClick = {
-                        permission = "view"
-                        expanded = false // Close the dropdown after selection
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Edit") },
-                    onClick = {
-                        permission = "edit"
-                        expanded = false // Close the dropdown after selection
-                    }
-                )
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(text = { Text("View") }, onClick = {
+                    permission = "view"
+                    expanded = false // Close the dropdown after selection
+                })
+                DropdownMenuItem(text = { Text("Edit") }, onClick = {
+                    permission = "edit"
+                    expanded = false // Close the dropdown after selection
+                })
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Share Document Button
-        NavigationDrawerItem(
-            label = { Text("Edit Permission") },
-            icon = {
-                Icon(Icons.Default.Edit, contentDescription = "Edit Permission")
-            },
-            selected = false,
-            onClick = {
-                if (emailToShare.isNotEmpty() && permission.isNotEmpty()) {
-                    onShareDocument(emailToShare, permission)
-                    Toast.makeText(context, "Document shared with $emailToShare as $permission", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Please enter a valid email and select a permission", Toast.LENGTH_SHORT).show()
-                }
-                onDismiss() // Dismiss the drawer after the action
+        NavigationDrawerItem(label = { Text("Edit Permission") }, icon = {
+            Icon(Icons.Default.Edit, contentDescription = "Edit Permission")
+        }, selected = false, onClick = {
+            if (emailToShare.isNotEmpty() && permission.isNotEmpty()) {
+                onShareDocument(emailToShare, permission)
+                Toast.makeText(
+                    context,
+                    "Document shared with $emailToShare as $permission",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                Toast.makeText(
+                    context,
+                    "Please enter a valid email and select a permission",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-        )
+            onDismiss() // Dismiss the drawer after the action
+        })
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // File Share Option
-        NavigationDrawerItem(
-            label = { Text("File Share") },
-            icon = {
-                Icon(Icons.Default.Share, contentDescription = "File Share")
-            },
-            selected = false,
-            onClick = {
-                onFileShare()
-                onDismiss()
-            }
-        )
+        NavigationDrawerItem(label = { Text("File Share") }, icon = {
+            Icon(Icons.Default.Share, contentDescription = "File Share")
+        }, selected = false, onClick = {
+            onFileShare()
+            onDismiss()
+        })
 
         // Link Share Option
-        NavigationDrawerItem(
-            label = { Text("Link Share") },
-            icon = {
-                Icon(Icons.Default.Link, contentDescription = "Link Share")
-            },
-            selected = false,
-            onClick = {
-                onLinkShare()
-                onDismiss()
-            }
-        )
+        NavigationDrawerItem(label = { Text("Link Share") }, icon = {
+            Icon(Icons.Default.Link, contentDescription = "Link Share")
+        }, selected = false, onClick = {
+            onLinkShare()
+            onDismiss()
+        })
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Edit Option
-        NavigationDrawerItem(
-            label = { Text("Edit") },
-            icon = {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
-            },
-            selected = false,
-            onClick = {
-                onEdit()
-                onDismiss()
-            }
-        )
+        NavigationDrawerItem(label = { Text("Edit") }, icon = {
+            Icon(Icons.Default.Edit, contentDescription = "Edit")
+        }, selected = false, onClick = {
+            onEdit()
+            onDismiss()
+        })
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Download as PDF Option
-        NavigationDrawerItem(
-            label = { Text("Download as PDF") },
-            icon = {
-                Icon(Icons.Default.PictureAsPdf, contentDescription = "Download as PDF")
-            },
-            selected = false,
-            onClick = {
-                onDownloadPdf(document)
-                onDismiss()
-            }
-        )
+        NavigationDrawerItem(label = { Text("Download as PDF") }, icon = {
+            Icon(Icons.Default.PictureAsPdf, contentDescription = "Download as PDF")
+        }, selected = false, onClick = {
+            onDownloadPdf(document)
+            onDismiss()
+        })
     }
 }
