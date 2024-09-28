@@ -1,5 +1,8 @@
 package com.example.googledoc.presentation
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
@@ -54,10 +57,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.googledoc.common.SaveAsPdf
+import com.example.googledoc.R
+import com.example.googledoc.download.saveAsPdf
 import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
 import com.example.googledoc.viewmodel.DocumentViewModel
@@ -217,7 +222,7 @@ fun DocumentViewScreen(
                             )
                         },
                         onDownloadPdf = { document ->
-                            SaveAsPdf(context, document)
+                            saveAsPdf(context, document)
                         },
                         onShareDocument = { email, permission ->
                             scope.launch {

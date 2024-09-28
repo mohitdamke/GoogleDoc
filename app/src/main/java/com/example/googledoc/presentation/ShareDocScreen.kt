@@ -40,7 +40,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.googledoc.common.SaveAsPdf
+import com.example.googledoc.download.saveAsPdf
 import com.example.googledoc.data.Document
 import com.example.googledoc.viewmodel.DocumentViewModel
 
@@ -130,7 +130,7 @@ fun ShareDocScreen(
                     navController.navigate("edit/$documentId") // Adjust route as necessary
                 },
                 onDownloadPdf = {
-                    document?.let { it1 -> SaveAsPdf(context, it1) }
+                    document?.let { it1 -> saveAsPdf(context, it1) }
                 },
                 document = document!!
             )
