@@ -22,6 +22,7 @@ import com.example.googledoc.presentation.HomeScreen
 import com.example.googledoc.presentation.LoginScreen
 import com.example.googledoc.presentation.PdfViewerScreen
 import com.example.googledoc.presentation.SearchScreen
+import com.example.googledoc.presentation.ShareDocScreen
 
 @Composable
 fun NavigationGraph() {
@@ -59,10 +60,14 @@ fun NavigationGraph() {
             PdfViewerScreen(pdfUri = pdfUri, navController = navController)
         }
 
-
         composable(route = Routes.View.route) {
             val documentId = it.arguments?.getString("documentId") ?: "new"
             DocumentViewScreen(navController = navController, documentId = documentId)
+        }
+
+        composable(route = Routes.ShareDoc.route) {
+            val documentId = it.arguments?.getString("documentId") ?: ""
+            ShareDocScreen(navController = navController, documentId = documentId)
         }
 
     }

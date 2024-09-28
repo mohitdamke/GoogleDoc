@@ -7,4 +7,5 @@ sealed class Routes(val route : String){
     data object Edit : Routes("edit/{documentId}")
     data object View : Routes("view/{documentId}")
     data object PdfView : Routes("pdfview/{pdfUri}")
+    data object ShareDoc : Routes("shareDoc/{documentId}")
 }

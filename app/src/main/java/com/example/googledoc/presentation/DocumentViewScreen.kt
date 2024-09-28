@@ -258,7 +258,7 @@ fun DocumentViewScreen(
 }
 
 @Composable
-fun DocumentBottomSheetContent(
+private fun DocumentBottomSheetContent(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onFileShare: () -> Unit,
