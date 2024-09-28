@@ -73,18 +73,28 @@ class DocumentViewModel @Inject constructor(
     }
 
     fun updateDocument(documentId: String, newContent: String) {
-        val documentRef = FirebaseFirestore.getInstance().collection("documents").document(documentId)
+        viewModelScope.launch(Dispatchers.IO) {
+            // Fetch the document to check permissions
+            val documentSnapshot = docRef.document(documentId).get().await()
+            val sharedWith = documentSnapshot.get("sharedWith") as? Map<String, String> ?: emptyMap()
 
-        documentRef.update("content", newContent)
-            .addOnSuccessListener {
-                Log.d("DocumentViewModel", "Document successfully updated")
-                // Regenerate PDF after update
-                regeneratePdf(documentId) // This method will take care of merging changes into the PDF
+            // Check if the current user has edit permission
+            if (sharedWith[userEmail] == "edit") {
+                val documentRef = FirebaseFirestore.getInstance().collection("documents").document(documentId)
+                documentRef.update("content", newContent)
+                    .addOnSuccessListener {
+                        Log.d("DocumentViewModel", "Document successfully updated")
+                        regeneratePdf(documentId) // Regenerate PDF after update
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w("DocumentViewModel", "Error updating document", e)
+                    }
+            } else {
+                _error.postValue("You do not have permission to edit this document.")
             }
-            .addOnFailureListener { e ->
-                Log.w("DocumentViewModel", "Error updating document", e)
-            }
+        }
     }
+
     private fun regeneratePdf(documentId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {

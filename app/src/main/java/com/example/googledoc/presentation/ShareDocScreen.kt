@@ -62,13 +62,24 @@ fun ShareDocScreen(
     val errorMessage by documentViewModel.error.observeAsState()
 
     LaunchedEffect(documentId) {
-        // Fetch the document when this screen is displayed
         docViewModel.fetchDocument(documentId)
+    }
+
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    if (currentUser != null) {
+        val userEmail = currentUser.email
+        Log.d("YourTag", "User email fetched successfully: $userEmail")
+        // Proceed with document retrieval/editing logic
+    } else {
+        Log.e("YourTag", "Failed to fetch user email: User is not logged in")
+        Toast.makeText(context, "Failed to fetch user email", Toast.LENGTH_SHORT).show()
     }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            Log.e("YourTag", message)
+
         }
     }
     Scaffold(floatingActionButton = {
@@ -122,78 +133,81 @@ fun ShareDocScreen(
                     Text("Document not found.")
                 }
 
-            if (showBottomSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = {
-                        showBottomSheet = false
-                    }, sheetState = sheetState
-                ) {
-                    document?.let { doc ->
-                        DocumentBottomSheetContent(
-                            onDismiss = { showBottomSheet = false },
-                            onLinkShare = {
-                                val shareText =
-                                    "Check out this document: https://googledoc/document/$documentId"
-                                Log.d(
-                                    "TAG DocumentViewScreen ", "DocumentViewScreen: $documentId"
-                                )
-                                val intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, shareText)
-                                    type = "text/plain"
-                                }
-                                context.startActivity(
-                                    Intent.createChooser(intent, "Share document")
-                                )
-                            },
-                            onFileShare = {
-                                val file = File(
-                                    context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
-                                    "${doc.title}.pdf"
-                                )
-                                val outputStream: OutputStream = FileOutputStream(file)
-                                outputStream.use {
-                                    it.write(doc.content.toByteArray()) // Write content to file
-                                }
-                                val uri = FileProvider.getUriForFile(
-                                    context, "${context.packageName}.fileprovider", file
-                                )
-                                val intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    type = "application/pdf"
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(
-                                    Intent.createChooser(intent, "Share document")
-                                )
-                            },
-                            onEdit = {
-                                if (userPermission == "edit") {
-                                    navController.navigate(
-                                        Routes.Edit.route.replace("{documentId}", documentId)
+                if (showBottomSheet) {
+                    ModalBottomSheet(
+                        onDismissRequest = {
+                            showBottomSheet = false
+                        }, sheetState = sheetState
+                    ) {
+                        document?.let { doc ->
+                            DocumentBottomSheetContent(
+                                onDismiss = { showBottomSheet = false },
+                                onLinkShare = {
+                                    val shareText =
+                                        "Check out this document: https://googledoc/document/$documentId"
+                                    Log.d(
+                                        "TAG DocumentViewScreen ", "DocumentViewScreen: $documentId"
                                     )
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "You don't have permission to edit this document.",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            },
-                            onDownloadPdf = { document ->
-                                saveAsPdf(context, document)
-                            },
-                            document = doc
-                        )
-                    } ?: run {
-                        Text("No document available")
+                                    val intent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(intent, "Share document")
+                                    )
+                                },
+                                onFileShare = {
+                                    val file = File(
+                                        context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+                                        "${doc.title}.pdf"
+                                    )
+                                    val outputStream: OutputStream = FileOutputStream(file)
+                                    outputStream.use {
+                                        it.write(doc.content.toByteArray()) // Write content to file
+                                    }
+                                    val uri = FileProvider.getUriForFile(
+                                        context, "${context.packageName}.fileprovider", file
+                                    )
+                                    val intent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        type = "application/pdf"
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(intent, "Share document")
+                                    )
+                                },
+                                onEdit = {
+
+                                    Log.d("ShareDocScreen TAG", "User permission: $userPermission")
+
+                                    if (userPermission == "edit") {
+                                        navController.navigate(
+                                            Routes.Edit.route.replace("{documentId}", documentId)
+                                        )
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "You don't have permission to edit this document.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                onDownloadPdf = { document ->
+                                    saveAsPdf(context, document)
+                                },
+                                document = doc
+                            )
+                        } ?: run {
+                            Text("No document available")
+                        }
                     }
                 }
             }
         }
     }
-}
 }
 
 @Composable
