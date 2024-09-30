@@ -74,7 +74,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun EditDocumentScreen(
     modifier: Modifier = Modifier,
-    documentId: String,  // Passed from navigation
+    documentId: String,
     navController: NavController
 ) {
 

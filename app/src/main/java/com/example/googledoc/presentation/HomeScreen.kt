@@ -2,12 +2,11 @@ package com.example.googledoc.presentation
 
 import android.app.Activity
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +33,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewHeadline
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -49,6 +49,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -94,6 +95,11 @@ fun HomeScreen(
     val context = LocalContext.current
     var selectedDocument by remember { mutableStateOf<Document?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    val backgroundColor =
+        MaterialTheme.colorScheme.background // Replace with your desired background color
+    val iconColor =
+        MaterialTheme.colorScheme.onBackground // Replace with your desired background color
+    val textColor = MaterialTheme.colorScheme.primary // Replace with your desired text color
 
     // Launcher for file picker
 
@@ -109,10 +115,16 @@ fun HomeScreen(
 
     // Fetch the user's documents when this screen loads
     LaunchedEffect(Unit) {
-        if (currentUser != null) {
-            documentViewModel.fetchDocument(documentId = currentUser)
+        try {
+            if (currentUser != null) {
+                documentViewModel.fetchDocument(documentId = currentUser)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error fetching documents: ${e.message}", Toast.LENGTH_SHORT)
+                .show()
         }
     }
+
 
     LaunchedEffect(key1 = Unit) {
         if (currentUser == null) {
@@ -129,6 +141,7 @@ fun HomeScreen(
                 text = "Google Doc",
                 fontSize = TextDim.titleTextSize,
                 fontFamily = FontDim.Bold,
+                color = textColor,
                 modifier = Modifier.padding(10.dp)
             )
             Spacer(modifier = modifier.padding(top = 10.dp))
@@ -166,11 +179,11 @@ fun HomeScreen(
                         text = "Google Doc",
                         fontSize = TextDim.titleTextSize,
                         fontFamily = FontDim.Bold,
+                        color = textColor,
                         modifier = Modifier
                     )
                 }
-            },
-
+            }, colors = TopAppBarDefaults.centerAlignedTopAppBarColors(backgroundColor),
                 actions = {
                     Icon(imageVector = Icons.Default.Search,
                         contentDescription = "search",
@@ -178,9 +191,11 @@ fun HomeScreen(
                             .clickable {
                                 navController.navigate(Routes.Search.route)
                             }
-                            .size(30.dp))
+                            .size(30.dp), tint = iconColor
+                    )
                 }, navigationIcon = {
-                    Icon(imageVector = Icons.Default.ViewHeadline,
+                    Icon(
+                        imageVector = Icons.Default.ViewHeadline,
                         contentDescription = "more",
                         modifier = modifier
                             .size(30.dp)
@@ -190,26 +205,38 @@ fun HomeScreen(
                                         if (isClosed) open() else close()
                                     }
                                 }
-                            })
+                            }, tint = iconColor
+
+                    )
                 })
         }, floatingActionButton = {
-            FloatingActionButton(onClick = {
-                showBottomSheet = true
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "New Document")
+            FloatingActionButton(
+                onClick = {
+                    showBottomSheet = true
+                },
+            ) {
+                Icon(
+                    Icons.Default.Add, contentDescription = "New Document", tint = iconColor
+                )
             }
         }) { paddingValues ->
             if (isLoading) {
-                Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .background(backgroundColor),
+                    contentAlignment = Alignment.Center,
+                ) {
                     CircularProgressIndicator()
                 }
             } else {
                 Column(
                     modifier = modifier
                         .fillMaxSize()
+                        .background(backgroundColor)
                         .padding(paddingValues)
                 ) {
-                    LazyColumn(modifier = modifier.padding(16.dp)) {
+                    LazyColumn(modifier = modifier.padding(10.dp)) {
                         items(documents) { document ->
                             DocumentItem(
                                 document = document,
@@ -237,10 +264,13 @@ fun HomeScreen(
                                         }
                                     }, sheetState = sheetState
                                 ) {
-                                    NavigationDrawerItem(label = { Text(text = "Delete") }, icon = {
+                                    NavigationDrawerItem(label = { Text(text = "Delete", color = textColor) }, icon = {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
-                                            contentDescription = "delete"
+                                            contentDescription = "delete",
+                                            tint = iconColor
+
+
                                         )
                                     }, selected = false, onClick = {
                                         selectedDocument?.let { document ->
@@ -251,14 +281,16 @@ fun HomeScreen(
                                             }
                                         }
                                     })
-                                    NavigationDrawerItem(label = { Text(text = "Save Offline") },
+                                    NavigationDrawerItem(label = { Text(text = "Save Offline", color = textColor) },
                                         icon = {
                                             val isOffline =
                                                 offlineStatusMap[selectedDocument?.documentId]
                                                     ?: false
                                             Icon(
                                                 imageVector = if (isOffline) Icons.Default.Check else Icons.Default.Download,
-                                                contentDescription = if (isOffline) "Remove from Offline" else "Save Offline"
+                                                contentDescription = if (isOffline) "Remove from Offline" else "Save Offline",
+                                                tint = iconColor
+
                                             )
                                         },
                                         selected = false,
@@ -270,7 +302,7 @@ fun HomeScreen(
                                                     )
                                                 } else {
                                                     documentViewModel.saveDocumentOffline(
-                                                        context, document
+                                                        context = context, document = document
                                                     )
                                                 }
                                                 scope.launch {
@@ -315,35 +347,55 @@ fun HomeScreen(
 private fun BottomSheetContent(
     modifier: Modifier = Modifier, onNewDocument: () -> Unit, onOpenFromStorage: () -> Unit
 ) {
+    val backgroundColor =
+        MaterialTheme.colorScheme.background // Replace with your desired background color
+    val iconColor =
+        MaterialTheme.colorScheme.onBackground // Replace with your desired background color
+    val textColor = MaterialTheme.colorScheme.primary // Replace with your desired text color
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Select an Option",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
         // Option to create a new document
         Button(
-            onClick = onNewDocument, modifier = Modifier.fillMaxWidth()
+            onClick = onNewDocument,
+            colors = ButtonDefaults.buttonColors(backgroundColor), // Set button background to white
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, end = 10.dp),
+            elevation = ButtonDefaults.elevatedButtonElevation(2.dp)
         ) {
-            Icon(Icons.Default.Create, contentDescription = "New Document")
+            Icon(Icons.Default.Create, contentDescription = "New Document", tint = iconColor)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Create New Document")
+            Text(
+                "Create New Document",
+                color = textColor,
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Option to open a document from storage
         Button(
-            onClick = onOpenFromStorage, modifier = Modifier.fillMaxWidth()
+            onClick = onOpenFromStorage,
+            colors = ButtonDefaults.buttonColors(backgroundColor), // Set button background to white
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, end = 10.dp),
+            elevation = ButtonDefaults.elevatedButtonElevation(2.dp)
         ) {
-            Icon(Icons.Default.FolderOpen, contentDescription = "Open Document from Storage")
+            Icon(
+                Icons.Default.FolderOpen,
+                contentDescription = "Open Document from Storage",
+                tint = iconColor
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Open from Phone Storage")
+            Text(
+                "Open from Phone Storage",
+                color = textColor,
+            )
         }
     }
 }
@@ -356,6 +408,12 @@ fun DocumentItem(
     onClick: () -> Unit,
     onMore: () -> Unit,
 ) {
+    val backgroundColor =
+        MaterialTheme.colorScheme.background // Replace with your desired background color
+    val iconColor =
+        MaterialTheme.colorScheme.onBackground // Replace with your desired background color
+    val textColor = MaterialTheme.colorScheme.primary // Replace with your desired text color
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -364,15 +422,16 @@ fun DocumentItem(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            Text(text = document.title, style = MaterialTheme.typography.labelLarge)
+            Text(text = document.title, style = MaterialTheme.typography.labelLarge, color = textColor)
             Text(
                 text = "Last Edited: ${FormatTimestamp(document.timestamp)}",
+                color = textColor,
                 style = MaterialTheme.typography.labelMedium
             )
         }
         Row {
             IconButton(onClick = onMore) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Share")
+                Icon(Icons.Default.MoreVert, contentDescription = "Share", tint = iconColor)
             }
         }
     }

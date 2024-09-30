@@ -2,7 +2,6 @@ package com.example.googledoc
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,7 +14,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.googledoc.navigation.NavigationGraph
 import com.example.googledoc.navigation.routes.Routes
-import com.example.googledoc.ui.theme.GoogleDocTheme
+import com.example.googledoc.ui.theme.CustomAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -39,7 +38,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            GoogleDocTheme {
+            CustomAppTheme  {
                 val navController = rememberNavController()
                 NavigationGraph()
                 handleIncomingIntent(intent, navController)

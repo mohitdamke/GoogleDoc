@@ -47,7 +47,7 @@ import java.io.OutputStream
 fun ShareDocScreen(
     modifier: Modifier = Modifier,
     documentId: String,
-    navController: NavController = rememberNavController(),
+    navController: NavController,
 ) {
     val context = LocalContext.current
     val docViewModel: DocumentViewModel = hiltViewModel()
@@ -58,13 +58,22 @@ fun ShareDocScreen(
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
-    val userPermission = document?.sharedWith?.get(currentUserId) ?: "view"
     val errorMessage by documentViewModel.error.observeAsState()
+
+    val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email
+    val userPermission = remember(document?.sharedWith, currentUserEmail) {
+        document?.sharedWith?.get(currentUserEmail) ?: "view"
+    }
+
+    Log.d("ShareDocScreen TAG", "Shared with: ${document?.sharedWith}")
+    Log.d("ShareDocScreen TAG", "Current user email: $currentUserEmail")
+    Log.d("ShareDocScreen TAG", "User permission: $userPermission")
+
 
     LaunchedEffect(documentId) {
         docViewModel.fetchDocument(documentId)
     }
-
+//    Check out this document: https://googledoc/document/zPGYjsFA5zSTjktsJ2Ad
     val currentUser = FirebaseAuth.getInstance().currentUser
     if (currentUser != null) {
         val userEmail = currentUser.email
@@ -84,7 +93,9 @@ fun ShareDocScreen(
     }
     Scaffold(floatingActionButton = {
         FloatingActionButton(onClick = {
-            showBottomSheet = true
+            scope.launch {
+                showBottomSheet = true
+            }
         }) {
             Icon(Icons.Default.Add, contentDescription = "Document")
         }
@@ -136,12 +147,18 @@ fun ShareDocScreen(
                 if (showBottomSheet) {
                     ModalBottomSheet(
                         onDismissRequest = {
-                            showBottomSheet = false
+                            scope.launch {
+                                showBottomSheet = false
+                            }
                         }, sheetState = sheetState
                     ) {
                         document?.let { doc ->
                             DocumentBottomSheetContent(
-                                onDismiss = { showBottomSheet = false },
+                                onDismiss = {
+                                    scope.launch {
+                                        showBottomSheet = false
+                                    }
+                                            },
                                 onLinkShare = {
                                     val shareText =
                                         "Check out this document: https://googledoc/document/$documentId"
@@ -184,9 +201,11 @@ fun ShareDocScreen(
                                     Log.d("ShareDocScreen TAG", "User permission: $userPermission")
 
                                     if (userPermission == "edit") {
-                                        navController.navigate(
-                                            Routes.Edit.route.replace("{documentId}", documentId)
-                                        )
+                                        if (documentId.isNotEmpty()) {
+                                            navController.navigate(Routes.Edit.route.replace("{documentId}", documentId))
+                                        } else {
+                                            Toast.makeText(context, "Invalid document ID", Toast.LENGTH_SHORT).show()
+                                        }
                                     } else {
                                         Toast.makeText(
                                             context,

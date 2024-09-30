@@ -27,6 +27,7 @@ import com.example.googledoc.presentation.ShareDocScreen
 @Composable
 fun NavigationGraph() {
     val navController = rememberNavController()
+
     NavHost(
         navController = navController,
         startDestination = Routes.Login.route
@@ -35,7 +36,6 @@ fun NavigationGraph() {
         composable(route = Routes.Login.route) {
             LoginScreen(navController = navController)
         }
-
 
         composable(route = Routes.Home.route) {
             HomeScreen(navController = navController)
@@ -47,7 +47,7 @@ fun NavigationGraph() {
 
         composable(route = Routes.Edit.route) {
             val documentId = it.arguments?.getString("documentId") ?: "new"
-            EditDocumentScreen(navController = navController, documentId = documentId)
+            EditDocumentScreen(navController = navController, documentId = documentId ?: "")
         }
 
         composable(
@@ -63,11 +63,6 @@ fun NavigationGraph() {
         composable(route = Routes.View.route) {
             val documentId = it.arguments?.getString("documentId") ?: "new"
             DocumentViewScreen(navController = navController, documentId = documentId)
-        }
-
-        composable(route = Routes.ShareDoc.route) {
-            val documentId = it.arguments?.getString("documentId") ?: ""
-            ShareDocScreen(navController = navController, documentId = documentId)
         }
 
     }
