@@ -7,6 +7,7 @@ import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,15 +15,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,6 +55,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,8 +91,10 @@ fun DocumentViewScreen(
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
-    val userPermission = document?.sharedWith?.get(currentUserId) ?: "view"
-
+    val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email
+    val userPermission = remember(document?.sharedWith, currentUserEmail) {
+        document?.sharedWith?.get(currentUserEmail) ?: "view"
+    }
     if (pdfUri == null) {
         LaunchedEffect(documentId) {
             documentViewModel.fetchDocument(documentId)
@@ -92,24 +102,41 @@ fun DocumentViewScreen(
         }
     }
 
-    Scaffold(floatingActionButton = {
-        FloatingActionButton(onClick = {
-            showBottomSheet = true
-        }) {
-            Icon(Icons.Default.Add, contentDescription = "Document")
-        }
-    }, topBar = {
-        TopAppBar(title = {
-            Text(
-                text = document?.title ?: "Loading",
-                textAlign = TextAlign.Start,
-                fontSize = 24.sp,
-                minLines = 1,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = {
+                showBottomSheet = true
+            }) {
+                Icon(Icons.Default.Add, contentDescription = "Document")
+            }
+        },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = document?.title ?: "Loading",
+                        textAlign = TextAlign.Start,
+                        fontSize = 24.sp,
+                        minLines = 1,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, modifier = modifier.padding(start = 10.dp)
+                    )
+                },
+                navigationIcon = {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = null,
+                        modifier = modifier.clickable {
+                            scope.launch {
+                                navController.navigateUp()
+                            }
+                        }, tint = Gray
+                    )
+                }
             )
-        })
-    }) { paddingValues ->
+        },
+
+        ) { paddingValues ->
         if (isLoading && pdfUri == null) {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -120,39 +147,29 @@ fun DocumentViewScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                Spacer(modifier = modifier.height(16.dp))
-
                 if (pdfUri != null) {
                     // Display PDF using PDFView
                     PdfViewerScreen(pdfUri = pdfUri.toString())
                 } else {
                     document?.let {
-                        Column(
-                            modifier = modifier
-                                .fillMaxSize()
-                                .padding(paddingValues)
-                        ) {
-                            Spacer(modifier = modifier.height(16.dp))
+                        AndroidView(
+                            factory = { context ->
+                                WebView(context).apply {
+                                    settings.domStorageEnabled = true
+                                    loadData(it.content, "text/html", "UTF-8")
 
-                            AndroidView(
-                                factory = { context ->
-                                    WebView(context).apply {
-                                        settings.domStorageEnabled = true
-                                        loadData(it.content, "text/html", "UTF-8")
-
-                                        webViewClient = object : WebViewClient() {
-                                            @Deprecated("Deprecated in Java")
-                                            override fun shouldOverrideUrlLoading(
-                                                view: WebView?, url: String?
-                                            ): Boolean {
-                                                view?.loadUrl(url!!) // Handle links inside the WebView
-                                                return true
-                                            }
+                                    webViewClient = object : WebViewClient() {
+                                        @Deprecated("Deprecated in Java")
+                                        override fun shouldOverrideUrlLoading(
+                                            view: WebView?, url: String?
+                                        ): Boolean {
+                                            view?.loadUrl(url!!) // Handle links inside the WebView
+                                            return true
                                         }
                                     }
-                                }, modifier = modifier.weight(1f)
-                            )
-                        }
+                                }
+                            }
+                        )
                     }
                 }
                 if (showBottomSheet) {
@@ -265,87 +282,91 @@ private fun DocumentBottomSheetContent(
     onLinkShare: () -> Unit,
     onEdit: () -> Unit,
     onDownloadPdf: (Document) -> Unit,
-    onShareDocument: (String, String) -> Unit,  // email and permission
+    onShareDocument: (String, String) -> Unit,
     document: Document
 ) {
     val context = LocalContext.current
     var emailToShare by rememberSaveable { mutableStateOf("") }
-    var permission by remember { mutableStateOf("view") } // Default to view permission
+    var permission by remember { mutableStateOf("view") }
     var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(10.dp)
     ) {
-
-        // Sharing Section
-        Text(
-            text = "Share Document",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        // Email input field
-        OutlinedTextField(
-            value = emailToShare,
-            onValueChange = { emailToShare = it },
-            label = { Text("Enter email to share with") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(100.dp)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-// Permission selection dropdown
         Box(
             modifier = Modifier.fillMaxWidth()
+                .wrapContentSize(Alignment.TopEnd)
         ) {
-            // Icon button to toggle dropdown
-            IconButton(onClick = { expanded = !expanded }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert, contentDescription = "More"
-                )
-            }
+            OutlinedTextField(
+                value = emailToShare,
+                onValueChange = { emailToShare = it },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More", modifier = modifier.clickable {
+                            expanded = !expanded
+                        }
+                    )
+                },
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.Send, contentDescription = "Send Permission",
+                        modifier = modifier.clickable {
+                            if (emailToShare.isNotEmpty() && permission.isNotEmpty()) {
+                                onShareDocument(emailToShare, permission)
+                                Toast.makeText(
+                                    context,
+                                    "Document shared with $emailToShare as $permission",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Please enter a valid email and select a permission",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            onDismiss() // Dismiss the drawer after the action
+
+                        },
+                    )
+                },
+                placeholder = { Text("Enter email to share with") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(100.dp), // Use smaller radius for a modern look
+                singleLine = true // Keep the input single line,
+
+            )
 
             // Dropdown menu for selecting permissions
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(text = { Text("View") }, onClick = {
-                    permission = "view"
-                    expanded = false // Close the dropdown after selection
-                })
-                DropdownMenuItem(text = { Text("Edit") }, onClick = {
-                    permission = "edit"
-                    expanded = false // Close the dropdown after selection
-                })
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.wrapContentHeight()  // Ensure the dropdown fills the width
+            ) {
+                DropdownMenuItem(
+                    text = { Text("View", fontSize = 16.sp) },
+                    onClick = {
+                        permission = "view"
+                        expanded = false // Close the dropdown after selection
+                    }
+                )
+                Divider()
+                DropdownMenuItem(
+                    text = { Text("Edit", fontSize = 16.sp) },
+                    onClick = {
+                        permission = "edit"
+                        expanded = false // Close the dropdown after selection
+                    }
+                )
             }
         }
-
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Share Document Button
-        NavigationDrawerItem(label = { Text("Edit Permission") }, icon = {
-            Icon(Icons.Default.Edit, contentDescription = "Edit Permission")
-        }, selected = false, onClick = {
-            if (emailToShare.isNotEmpty() && permission.isNotEmpty()) {
-                onShareDocument(emailToShare, permission)
-                Toast.makeText(
-                    context,
-                    "Document shared with $emailToShare as $permission",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } else {
-                Toast.makeText(
-                    context,
-                    "Please enter a valid email and select a permission",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-            onDismiss() // Dismiss the drawer after the action
-        })
 
         Spacer(modifier = Modifier.height(8.dp))
-
         // File Share Option
         NavigationDrawerItem(label = { Text("File Share") }, icon = {
             Icon(Icons.Default.Share, contentDescription = "File Share")
@@ -353,6 +374,7 @@ private fun DocumentBottomSheetContent(
             onFileShare()
             onDismiss()
         })
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Link Share Option
         NavigationDrawerItem(label = { Text("Link Share") }, icon = {

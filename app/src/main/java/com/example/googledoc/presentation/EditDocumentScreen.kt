@@ -38,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,13 +53,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontWeight.Companion.W400
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.googledoc.data.Document
@@ -108,15 +112,28 @@ fun EditDocumentScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (documentId == "new") "New Document" else "Edit Document") },
+            TopAppBar(colors =  TopAppBarDefaults.topAppBarColors(White),
+                title = {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        placeholder = { Text("Title", fontSize = 16.sp, fontWeight = W400) },
+                        singleLine = true,
+
+                        modifier = Modifier
+                            .fillMaxWidth(), shape = RoundedCornerShape(100.dp) // Add padding
+                    )
+                },
                 actions = {
                     TextButton(onClick = {
                         coroutineScope.launch {
                             val textContent = state.toHtml() // Convert editor content to HTML
 
                             if (documentId == "new") {
-                                documentViewModel.createDocument(title = title, content = textContent)
+                                documentViewModel.createDocument(
+                                    title = title,
+                                    content = textContent
+                                )
                             } else {
                                 currentDocument?.let {
                                     documentViewModel.updateDocument(
@@ -130,7 +147,7 @@ fun EditDocumentScreen(
                             navController.navigate(Routes.Home.route)
                         }
                     }) {
-                        Text("Save")
+                        Text("Save", fontSize = 16.sp)
                     }
                 },
                 navigationIcon = {
@@ -154,15 +171,6 @@ fun EditDocumentScreen(
             ) {
                 LazyColumn {
                     item {
-                        OutlinedTextField(
-                            value = title,
-                            onValueChange = { title = it },
-                            label = { Text("Title") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         EditorControls(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -202,8 +210,7 @@ fun EditDocumentScreen(
 
                         RichTextEditor(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
+                                .fillMaxSize(), placeholder = { Text(text = "Enter text here" )},
                             state = state,
                         )
                     }

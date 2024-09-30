@@ -62,6 +62,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color.Companion.Red
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -134,7 +136,7 @@ fun HomeScreen(
         }
     }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    ModalNavigationDrawer(drawerState = drawerState, drawerContent = {
+    ModalNavigationDrawer(modifier = modifier.background(White), scrimColor = White, drawerState = drawerState, drawerContent = {
         ModalDrawerSheet {
             Spacer(modifier = modifier.padding(top = 10.dp))
             Text(
@@ -264,7 +266,12 @@ fun HomeScreen(
                                         }
                                     }, sheetState = sheetState
                                 ) {
-                                    NavigationDrawerItem(label = { Text(text = "Delete", color = textColor) }, icon = {
+                                    NavigationDrawerItem(label = {
+                                        Text(
+                                            text = "Delete",
+                                            color = textColor
+                                        )
+                                    }, icon = {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = "delete",
@@ -281,7 +288,12 @@ fun HomeScreen(
                                             }
                                         }
                                     })
-                                    NavigationDrawerItem(label = { Text(text = "Save Offline", color = textColor) },
+                                    NavigationDrawerItem(label = {
+                                        Text(
+                                            text = "Save Offline",
+                                            color = textColor
+                                        )
+                                    },
                                         icon = {
                                             val isOffline =
                                                 offlineStatusMap[selectedDocument?.documentId]
@@ -422,7 +434,11 @@ fun DocumentItem(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            Text(text = document.title, style = MaterialTheme.typography.labelLarge, color = textColor)
+            Text(
+                text = document.title,
+                style = MaterialTheme.typography.labelLarge,
+                color = textColor
+            )
             Text(
                 text = "Last Edited: ${FormatTimestamp(document.timestamp)}",
                 color = textColor,
