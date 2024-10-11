@@ -23,12 +23,6 @@ import java.io.IOException
 
 // Function to save the document as a PDF and send a notification
 fun saveAsPdf(context: Context, document: Document) {
-    // Check for necessary permissions before proceeding
-    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-        Toast.makeText(context, "Storage permission is required to save PDF", Toast.LENGTH_SHORT).show()
-        return
-    }
-
     // Create a PdfDocument instance
     val pdfDocument = PdfDocument()
 
