@@ -1,4 +1,8 @@
-# Google Docs App 📝
+## Google Docs App
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/9f40331c-3453-4547-bdf9-84c60baab71a" alt="Google Docs Logo" width="150"/>
+</div> 
 
 ## Overview ✨
 
