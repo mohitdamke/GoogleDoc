@@ -4,6 +4,8 @@
   <img src="https://github.com/user-attachments/assets/9f40331c-3453-4547-bdf9-84c60baab71a" alt="Google Docs Logo" width="150"/>
 </div> 
 
+https://youtu.be/DuO1DCR1MYc?si=iWqGoziqMe7T_PCA
+
 ## Overview ✨
 
 This project is a **Google Docs Clone** app featuring a sleek **white-themed background**. It allows users to effortlessly create, edit, view, and manage documents through a clean and intuitive interface. The app offers a variety of features, including **Google authentication**, **offline document saving**, **rich text editing**, **document sharing**, and **PDF export**. 📄
