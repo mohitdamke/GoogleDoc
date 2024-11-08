@@ -80,9 +80,11 @@ fun PdfViewerScreen(
 
         Scaffold { padding ->
 
-            Box(modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
                 if (isLoading) {
                     LoadingIndicator(currentLoadingPage, pageCount)
                 } else {

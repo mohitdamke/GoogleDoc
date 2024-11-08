@@ -62,7 +62,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -136,34 +135,39 @@ fun HomeScreen(
         }
     }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    ModalNavigationDrawer(modifier = modifier.background(White), scrimColor = White, drawerState = drawerState, drawerContent = {
-        ModalDrawerSheet {
-            Spacer(modifier = modifier.padding(top = 10.dp))
-            Text(
-                text = "Google Doc",
-                fontSize = TextDim.titleTextSize,
-                fontFamily = FontDim.Bold,
-                color = textColor,
-                modifier = Modifier.padding(10.dp)
-            )
-            Spacer(modifier = modifier.padding(top = 10.dp))
-            HorizontalDivider()
-            NavigationDrawerItem(label = { Text(text = "Logout") }, icon = {
-                Icon(
-                    imageVector = Icons.Default.Logout, contentDescription = "logout"
+    ModalNavigationDrawer(
+        modifier = modifier.background(White),
+        scrimColor = White,
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(modifier = modifier.padding(top = 10.dp))
+                Text(
+                    text = "Google Doc",
+                    fontSize = TextDim.titleTextSize,
+                    fontFamily = FontDim.Bold,
+                    color = textColor,
+                    modifier = Modifier.padding(10.dp)
                 )
-            }, selected = false, onClick = {
-                loginViewModel.getGoogleSignInClient(context as Activity) // Ensure it's initialized
-                loginViewModel.signOut()
-                scope.launch {
-                    Toast.makeText(context, "Signed out successfully.", Toast.LENGTH_SHORT).show()
-                    navController.navigate(Routes.Login.route) {
-                        popUpTo(Routes.Home.route) { inclusive = true }
+                Spacer(modifier = modifier.padding(top = 10.dp))
+                HorizontalDivider()
+                NavigationDrawerItem(label = { Text(text = "Logout") }, icon = {
+                    Icon(
+                        imageVector = Icons.Default.Logout, contentDescription = "logout"
+                    )
+                }, selected = false, onClick = {
+                    loginViewModel.getGoogleSignInClient(context as Activity) // Ensure it's initialized
+                    loginViewModel.signOut()
+                    scope.launch {
+                        Toast.makeText(context, "Signed out successfully.", Toast.LENGTH_SHORT)
+                            .show()
+                        navController.navigate(Routes.Login.route) {
+                            popUpTo(Routes.Home.route) { inclusive = true }
+                        }
                     }
-                }
-            })
-        }
-    }) {
+                })
+            }
+        }) {
         Scaffold(topBar = {
             CenterAlignedTopAppBar(title = {
                 Row(

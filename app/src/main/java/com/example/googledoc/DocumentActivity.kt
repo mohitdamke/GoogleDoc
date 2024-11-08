@@ -16,19 +16,21 @@ class DocumentActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CustomAppTheme {
-            val data: Uri? = intent?.data
-            val documentId = remember { data?.lastPathSegment }
-            // Safely get the last path segment
-            // Pass the documentId to DocumentScreen
-            if (!documentId.isNullOrEmpty()) {
-                DocNavigationGraph(documentId = documentId)
-            } else {
-                Toast.makeText(this, "The link is invalid", Toast.LENGTH_SHORT).show()
-                // Handle error (e.g., show an error message)
-                finish() // Close the activity if the link is invalid
+                val data: Uri? = intent?.data
+                val documentId = remember { data?.lastPathSegment }
+                // Safely get the last path segment
+                // Pass the documentId to DocumentScreen
+                if (!documentId.isNullOrEmpty()) {
+                    DocNavigationGraph(documentId = documentId)
+                } else {
+                    Toast.makeText(this, "The link is invalid", Toast.LENGTH_SHORT).show()
+                    // Handle error (e.g., show an error message)
+                    finish() // Close the activity if the link is invalid
+                }
             }
-        }}
+        }
     }
+
     @Deprecated("This method has been deprecated in favor of using the\n      {@link OnBackPressedDispatcher} via {@link #getOnBackPressedDispatcher()}.\n      The OnBackPressedDispatcher controls how back button events are dispatched\n      to one or more {@link OnBackPressedCallback} objects.")
     override fun onBackPressed() {
         super.onBackPressed()

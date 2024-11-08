@@ -1,9 +1,9 @@
 package com.example.googledoc.domain
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Delete
 import com.example.googledoc.data.DocumentEntity
 
 @Dao
@@ -17,6 +17,4 @@ interface DocumentDao {
     @Query("SELECT * FROM offline_documents WHERE documentId = :id")
     suspend fun getDocument(id: String): DocumentEntity?
 
-    @Query("SELECT * FROM offline_documents")
-    suspend fun getAllDocuments(): List<DocumentEntity>
 }

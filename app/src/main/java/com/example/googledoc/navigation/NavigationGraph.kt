@@ -1,15 +1,6 @@
 package com.example.googledoc.navigation
 
-import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight.Companion.W700
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,7 +13,6 @@ import com.example.googledoc.presentation.HomeScreen
 import com.example.googledoc.presentation.LoginScreen
 import com.example.googledoc.presentation.PdfViewerScreen
 import com.example.googledoc.presentation.SearchScreen
-import com.example.googledoc.presentation.ShareDocScreen
 
 @Composable
 fun NavigationGraph() {

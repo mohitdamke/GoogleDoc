@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,8 +34,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
@@ -84,7 +81,6 @@ fun DocumentViewScreen(
     pdfUri: Uri? = null // Optionally pass a Uri to a PDF file
 ) {
     val context = LocalContext.current
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()
     val documentViewModel: DocumentViewModel = hiltViewModel()
     val document by documentViewModel.currentDocument.observeAsState()
     val isLoading by documentViewModel.isLoading.observeAsState(false)
@@ -296,7 +292,8 @@ private fun DocumentBottomSheetContent(
             .padding(10.dp)
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .wrapContentSize(Alignment.TopEnd)
         ) {
             OutlinedTextField(

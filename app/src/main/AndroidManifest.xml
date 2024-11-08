@@ -3,11 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
 
@@ -43,16 +45,17 @@
             <!-- Deep linking intent filter -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="https"/>
-                <data android:host="googledoc"/>
-                <data android:pathPattern="/pdfview/.*"/>
+                <data android:scheme="https" />
+                <data android:host="googledoc" />
+                <data android:pathPattern="/pdfview/.*" />
 
-                <data android:scheme="content"/>
-                <data android:host="com.android.providers.downloads.documents"/>
-                <data android:pathPattern=".*"/>
+                <data android:scheme="content" />
+                <data android:host="com.android.providers.downloads.documents" />
+                <data android:pathPattern=".*" />
 
             </intent-filter>
 
@@ -62,15 +65,17 @@
             android:name=".OpenPdfActivity"
             android:exported="true"
             android:label="@string/open_doc_name"
-            android:theme="@style/Theme.AppCompat.GoogleDoc"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.AppCompat.GoogleDoc">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:mimeType="application/pdf"/>
-                <data android:scheme="content"/>
-                <data android:scheme="file"/>
+
+                <data android:mimeType="application/pdf" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
             </intent-filter>
         </activity>
 

@@ -19,14 +19,15 @@ class OpenPdfActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         // Initialize the file picker
-        openFileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                result.data?.data?.let { uri ->
-                    // Open the PDF using PdfViewerScreen
-                    openPdf(uri)
+        openFileLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    result.data?.data?.let { uri ->
+                        // Open the PDF using PdfViewerScreen
+                        openPdf(uri)
+                    }
                 }
             }
-        }
 
         // Check if there's an intent with a URI passed in (for deep linking)
         intent?.data?.let { uri ->

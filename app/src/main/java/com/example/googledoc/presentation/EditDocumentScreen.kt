@@ -9,10 +9,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,13 +63,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.googledoc.data.Document
 import com.example.googledoc.navigation.routes.Routes
 import com.example.googledoc.viewmodel.DocumentViewModel
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,7 +81,6 @@ fun EditDocumentScreen(
     val documentViewModel: DocumentViewModel = hiltViewModel()
 
     var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
     val isLoading by documentViewModel.isLoading.observeAsState(false)
     val currentDocument by documentViewModel.currentDocument.observeAsState()
     val state = rememberRichTextState()
@@ -112,7 +107,7 @@ fun EditDocumentScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(colors =  TopAppBarDefaults.topAppBarColors(White),
+            TopAppBar(colors = TopAppBarDefaults.topAppBarColors(White),
                 title = {
                     OutlinedTextField(
                         value = title,
@@ -210,7 +205,8 @@ fun EditDocumentScreen(
 
                         RichTextEditor(
                             modifier = Modifier
-                                .fillMaxSize(), placeholder = { Text(text = "Enter text here" )},
+                                .fillMaxSize(),
+                            placeholder = { Text(text = "Enter text here") },
                             state = state,
                         )
                     }

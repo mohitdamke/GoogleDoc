@@ -111,8 +111,7 @@ fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
                     text = "Google Doc",
                     fontSize = TextDim.titleTextSize,
                     fontFamily = FontDim.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                    ,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                 )
             }
@@ -160,16 +159,16 @@ fun LoginScreen(modifier: Modifier = Modifier, navController: NavController) {
                     color = Color.Black // Set text color to black for contrast on white button
                 )
             }
-                if (isLoading) {
-                    Column(
-                        modifier = modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+            if (isLoading) {
+                Column(
+                    modifier = modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }
     }
+}
 

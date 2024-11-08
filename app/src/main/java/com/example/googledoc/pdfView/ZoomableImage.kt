@@ -1,7 +1,16 @@
 package com.example.googledoc.pdfView
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.MutatePriority
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateRotation
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.forEachGesture
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -123,14 +132,3 @@ suspend fun ScrollableState.setScrolling(value: Boolean) {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-

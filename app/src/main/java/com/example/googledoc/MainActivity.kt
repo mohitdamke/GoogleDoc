@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            CustomAppTheme  {
+            CustomAppTheme {
                 val navController = rememberNavController()
                 NavigationGraph()
                 handleIncomingIntent(intent, navController)
@@ -49,19 +49,25 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun checkNotificationPermission() {
         when {
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> {
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED -> {
                 // Permission is granted
             }
+
             shouldShowRequestPermissionRationale(android.Manifest.permission.POST_NOTIFICATIONS) -> {
                 // Show rationale and request permission
                 requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
+
             else -> {
                 // Request the permission directly
                 requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
+
     private fun handleIncomingIntent(intent: Intent, navController: NavController) {
         if (Intent.ACTION_VIEW == intent.action) {
             intent.data?.let { uri ->
