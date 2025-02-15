@@ -1,10 +1,12 @@
-## Google Docs App
+# Google Docs Clone App
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/9f40331c-3453-4547-bdf9-84c60baab71a" alt="Google Docs Logo" width="150"/>
-</div> 
+</div>
 
 Check out the app demo on YouTube: [**Google Docs App Demo**](https://youtu.be/DuO1DCR1MYc?si=iWqGoziqMe7T_PCA)
+
+---
 
 ## Overview ✨
 
@@ -54,10 +56,12 @@ The app leverages **Firebase Firestore** for cloud storage and **Room Database**
     <td>
       <img src="https://github.com/user-attachments/assets/570e60a3-a335-4683-83b9-80fe0ca02f98" alt="Screenshot 1" width="200"/>
     </td>
+  </tr>
+</table>
 
+---
 
-
-## Screen Recording 🎥
+## Screen Recordings 🎥
 
 <table align="center">
   <tr>
@@ -87,6 +91,9 @@ The app leverages **Firebase Firestore** for cloud storage and **Room Database**
   <tr>
     <td>
       <video src="https://github.com/user-attachments/assets/03eb2342-5299-47cb-9667-e8157cb09141" controls width="300"></video>
+    </td>
+  <td>
+      <video src="https://github.com/user-attachments/assets/your-video-file" controls width="300"></video>
     </td>
   </tr>
 </table>
@@ -130,6 +137,7 @@ The app leverages **Firebase Firestore** for cloud storage and **Room Database**
 ---
 
 ## Technologies Used 🛠️
+
 - **Kotlin**: The main programming language for development.
 - **Jetpack Compose**: To build the app’s UI.
 - **Firebase Firestore**: For cloud storage.
@@ -143,7 +151,13 @@ The app leverages **Firebase Firestore** for cloud storage and **Room Database**
 ## How to Run the App ⚙️
 
 1. **Clone** this repository.
+   ```bash
+   git clone https://github.com/yourusername/google-docs-clone.git
+   ```
 2. Set up **Firebase** for your project.
+   - Go to the [Firebase Console](https://console.firebase.google.com/).
+   - Create a new project and add your Android app.
+   - Download the `google-services.json` file and place it in the `app` directory.
 3. Enable **Google Authentication** in Firebase.
 4. Sync the project in **Android Studio**.
 5. Build and run the app on your device.
@@ -151,10 +165,34 @@ The app leverages **Firebase Firestore** for cloud storage and **Room Database**
 ---
 
 ## Future Improvements 🎯
+
 - Add more text formatting options in the editor.
 - Enhance the **PDF export** feature with advanced formatting.
 - Implement **real-time collaboration** on documents.
 
 ---
 
-Feel free to contribute to this project by submitting pull requests or reporting any issues! 🙌
+## Contributing 🤝
+
+We welcome contributions to the project! If you have suggestions or improvements, please follow these steps:
+
+1. **Fork the Repository**
+2. **Create a New Branch**
+3. **Make Your Changes**
+4. **Submit a Pull Request**
+
+---
+
+## License 📜
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## Contact 📧
+
+For any inquiries or issues, please contact us at [mohitrdamke@gmail.com](mailto:mohitrdamke@gmail.com).
+
+---
+
+Thank you for checking out the **Google Docs Clone** app! We hope you enjoy using it as much as we enjoyed building it. 🚀
